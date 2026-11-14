@@ -232,7 +232,7 @@ body.sheet-open .scrim{opacity:1;pointer-events:auto}
 .btn.sec2{background:var(--chip);color:var(--text)}
 .btn.wide{width:100%;margin-top:12px}
 .small{font-size:13px;color:var(--text3);margin-top:8px;line-height:1.4;min-height:1em}
-.small.bad{color:var(--err)}
+.small.bad{color:var(--err)}.small.ok{color:#1f8a4c}@media (prefers-color-scheme:dark){.small.ok{color:#5ad18a}}
 .small.good{color:var(--ok)}
 .linked{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;background:var(--inset);border-radius:14px;padding:10px 10px 10px 14px;font-size:15px}
 .linked span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -723,7 +723,7 @@ function rankModels(names){
   return ok.sort((a,b) => ver(b) - ver(a) || pre(a) - pre(b) || a.length - b.length);
 }
 async function gemModels(key){
-  const tag = key.slice(-6), c = LS.get('km-gem-models', null);
+  const tag = key.slice(-6), c = LS.get('km-gem-models2', null);
   if (c && c.tag === tag && Date.now() - c.at < 864e5 && c.list && c.list.length) return c.list;
   let list = [];
   try {
@@ -731,8 +731,8 @@ async function gemModels(key){
     if (r.status === 400 || r.status === 401 || r.status === 403){ const e = new Error('Gemini anahtarı geçersiz'); e.fatal = true; throw e; }
     if (r.ok){ const j = await r.json(); list = rankModels((j.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => m.name.replace(/^models\//, ''))); }
   } catch (e) { if (e.fatal) throw e; }
-  list = [...new Set([...list.slice(0,3), ...FALLBACK_MODELS])];
-  LS.set('km-gem-models', { tag, at: Date.now(), list });
+  list = [...new Set(['gemini-2.5-flash', ...list.slice(0,2), ...FALLBACK_MODELS])];
+  LS.set('km-gem-models2', { tag, at: Date.now(), list });
   return list;
 }
 function sysPrompt(){
@@ -751,7 +751,7 @@ VERİ (JSON):
 ${JSON.stringify(KMData.context())}`;
 }
 async function gemStream(model, key, body, onText){
-  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 45000);
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 20000);
   try {
     const r = await fetch(`${GEM}/models/${model}:streamGenerateContent?alt=sse`, { method:'POST', signal:ctl.signal, headers:{ 'content-type':'application/json', 'x-goog-api-key':key }, body: JSON.stringify(body) });
     if (!r.ok){
@@ -782,11 +782,14 @@ async function gemAsk(q, onText){
   const body = {
     systemInstruction:{ parts:[{ text: sysPrompt() }] },
     contents:[...convo.slice(-20).map(m => ({ role:m.role, parts:[{ text:m.text }] })), { role:'user', parts:[{ text:q }] }],
-    generationConfig:{ temperature:0.4, maxOutputTokens:2048 }
+    generationConfig:{ temperature:0.4, maxOutputTokens:4096 }
   };
   let last, got = false;
   for (const m of models){
-    try { const t = await gemStream(m, key, body, x => { got = true; onText(x); }); LS.set('km-gem-used', m); return { text:t, model:m }; }
+    const b2 = JSON.parse(JSON.stringify(body));
+    b2.generationConfig.thinkingConfig = /gemini-3/.test(m) ? { thinkingLevel:'low' } : /2\.5/.test(m) ? { thinkingBudget:0 } : undefined;
+    if (!b2.generationConfig.thinkingConfig) delete b2.generationConfig.thinkingConfig;
+    try { const t = await gemStream(m, key, b2, x => { got = true; onText(x); }); LS.set('km-gem-used', m); return { text:t, model:m }; }
     catch (e) { last = e; if (e.fatal || got) break; }
   }
   throw last || new Error('Gemini’ye ulaşılamadı');
@@ -893,7 +896,8 @@ async function ask(q){
   mode('thinking'); status.textContent = 'Düşünüyorum…';
   await swap(qHTML(q) + '<div class="thinking" aria-label="Yazıyor"><i></i><i></i><i></i></div>', true);
   /* ilk açılışta veriler gelene kadar kısa bekle */
-  if (firstLoad) await Promise.race([firstLoad, new Promise(r => setTimeout(r, 8000))]);
+  /* önbellekte veri varsa beklemeden cevapla; hiç veri yoksa en fazla 4 sn bekle */
+  if (firstLoad && !Object.values(KMData.state).some(x => x && x.data)) await Promise.race([firstLoad, new Promise(r => setTimeout(r, 4000))]);
   let entry = null;
   if (gemKey() && navigator.onLine !== false){
     const local = build(id);
@@ -920,7 +924,7 @@ async function ask(q){
       entry = { q, a };
     }
   } else {
-    await new Promise(r => setTimeout(r, reduce ? 200 : 450));
+    await new Promise(r => setTimeout(r, reduce ? 60 : 150));
     entry = { q, a: build(id) };
   }
   if (!history.includes(entry)){
@@ -1099,17 +1103,29 @@ $('#refreshBtn').onclick = async () => { const b = $('#refreshBtn'); b.disabled 
 function renderGem(){
   const k = gemKey(), used = LS.get('km-gem-used', null);
   $('#gemBox').innerHTML = k
-    ? `<div class="linked"><span>Anahtar kayıtlı · ••••${esc(k.slice(-4))}</span><button class="btn sec2" id="gemDel">Sil</button></div><div class="small">${used ? 'Model: ' + esc(used) : 'Model ilk soruda otomatik seçilir (en yeni Flash).'}</div>`
+    ? `<div class="linked"><span>Anahtar kayıtlı · ••••${esc(k.slice(-4))}</span><button class="btn sec2" id="gemTest">Test et</button><button class="btn sec2" id="gemDel">Sil</button></div><div class="small" id="gemMsg">${used ? 'Model: ' + esc(used) : 'Model ilk soruda otomatik seçilir.'}</div>`
     : `<form class="field" id="gemForm"><label class="sr" for="gemKey">Gemini API anahtarı</label><input class="inp" id="gemKey" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false"><button class="btn">Kaydet</button></form><div class="small" id="gemMsg"></div>`;
   const f = $('#gemForm');
   if (f) f.onsubmit = async e => {
     e.preventDefault(); const v = $('#gemKey').value.trim(); const msg = $('#gemMsg');
     if (v.length < 20){ msg.className = 'small bad'; msg.textContent = 'Bu bir API anahtarına benzemiyor.'; return; }
     msg.className = 'small'; msg.textContent = 'Kontrol ediliyor…';
-    try { LS.del('km-gem-models'); await gemModels(v); LS.setStr('km-gem-key', v); renderGem(); }
+    try { LS.del('km-gem-models2'); await gemModels(v); LS.setStr('km-gem-key', v); renderGem(); }
     catch (err) { msg.className = 'small bad'; msg.textContent = err.message; }
   };
-  const d = $('#gemDel'); if (d) d.onclick = () => { LS.del('km-gem-key'); LS.del('km-gem-models'); LS.del('km-gem-used'); convo.length = 0; renderGem(); };
+  const tb = $('#gemTest'); if (tb) tb.onclick = async () => {
+    const msg = $('#gemMsg'); msg.className = 'small'; msg.textContent = 'Gemini deneniyor…'; const t0 = Date.now();
+    LS.del('km-gem-models2');
+    const key = gemKey(); let models; try { models = await gemModels(key); } catch (e) { msg.className = 'small bad'; msg.textContent = 'Hata: ' + e.message; return; }
+    const log = [];
+    for (const m of models){
+      const body = { contents:[{ role:'user', parts:[{ text:'Tek kelimeyle merhaba de.' }] }], generationConfig:{ maxOutputTokens:256, ...( /gemini-3/.test(m) ? { thinkingConfig:{ thinkingLevel:'low' } } : /2\.5/.test(m) ? { thinkingConfig:{ thinkingBudget:0 } } : {}) } };
+      try { const out = await gemStream(m, key, body, () => {}); LS.set('km-gem-used', m); msg.className = 'small ok'; msg.textContent = `Çalışıyor ✓ Model: ${m} · ${((Date.now()-t0)/1000).toFixed(1)} sn · Cevap: "${out.trim().slice(0,40)}"`; return; }
+      catch (e) { log.push(m + ': ' + e.message); if (e.fatal) break; }
+    }
+    msg.className = 'small bad'; msg.textContent = 'Çalışmadı. ' + log.join(' · ');
+  };
+  const d = $('#gemDel'); if (d) d.onclick = () => { LS.del('km-gem-key'); LS.del('km-gem-models2'); LS.del('km-gem-used'); convo.length = 0; renderGem(); };
 }
 function renderCz(){
   const em = KMData.czEmail();
