@@ -1,0 +1,8 @@
+# Yalnızca uygulama yayınlanır; geliştirme klasörleri hariç
+konseptler/
+ekran/
+test/
+tests/
+*.test.js
+test*.js
+.DS_Store

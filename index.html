@@ -1,0 +1,1528 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F7F7F5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B0B0D" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Asistan">
+<meta name="application-name" content="Kontrol Merkezi">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<meta name="km-version" content="2.1.0">
+<title>Kontrol Merkezi</title>
+<link rel="preconnect" href="https://yks-takip-e070d-default-rtdb.firebaseio.com" crossorigin>
+<link rel="preconnect" href="https://deutschflow-f8eed-default-rtdb.europe-west1.firebasedatabase.app" crossorigin>
+<style>
+@property --a { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+
+:root{
+  --bg:#F7F7F5; --card:#FFFFFF; --inset:#F3F3F1;
+  --text:#1D1D1F; --text2:#5F5F64; --text3:#6E6E73;
+  --line:rgba(29,29,31,.08); --chip:rgba(29,29,31,.055); --chip-h:rgba(29,29,31,.09);
+  --link:#0058CC; --shadow:0 24px 60px rgba(30,30,40,.07);
+  --bar:#1D1D1F; --ok:#1F8A3B; --err:#C9302C; --warn:#A35C00;
+  --g1:#3D7BFF; --g2:#9B5CFF; --g3:#FF4FA3; --g4:#FF9440; --g5:#2EC5FF;
+  --ease:cubic-bezier(.22,.8,.26,1);
+  --kb:0px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B0B0D; --card:#18181B; --inset:#222226;
+    --text:#F2F2F4; --text2:#B4B4BA; --text3:#9C9CA3;
+    --line:rgba(255,255,255,.09); --chip:rgba(255,255,255,.08); --chip-h:rgba(255,255,255,.13);
+    --link:#5AA9FF; --shadow:0 24px 60px rgba(0,0,0,.45); --bar:#F2F2F4;
+    --ok:#4CD964; --err:#FF6B61; --warn:#FFB340;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B0B0D; --card:#18181B; --inset:#222226;
+  --text:#F2F2F4; --text2:#B4B4BA; --text3:#9C9CA3;
+  --line:rgba(255,255,255,.09); --chip:rgba(255,255,255,.08); --chip-h:rgba(255,255,255,.13);
+  --link:#5AA9FF; --shadow:0 24px 60px rgba(0,0,0,.45); --bar:#F2F2F4;
+  --ok:#4CD964; --err:#FF6B61; --warn:#FFB340;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",Roboto,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
+  overflow:hidden;
+}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:2px solid var(--link);outline-offset:3px;border-radius:12px}
+
+.app{
+  height:100dvh; max-width:680px; margin:0 auto;
+  display:grid; grid-template-rows:auto 1fr auto;
+  padding:env(safe-area-inset-top) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));
+  position:relative; z-index:1;
+}
+
+/* top bar */
+.top{display:flex;justify-content:space-between;align-items:center;height:52px;padding-top:6px}
+.top .grp{display:flex;align-items:center;gap:2px}
+.ghost{
+  display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:18px;
+  color:var(--text2);font-size:15px;transition:background .2s ease-out,opacity .25s ease-out;
+}
+.ghost:hover{background:var(--chip)}
+.ghost svg{width:18px;height:18px}
+.ghost[hidden]{display:inline-flex;visibility:hidden;opacity:0}
+.ghost[aria-pressed="true"]{color:var(--text);background:var(--chip)}
+.ghost.icon{width:36px;padding:0;justify-content:center}
+
+/* stage */
+.stage{display:flex;flex-direction:column;justify-content:center;min-height:0;position:relative;padding:8px 0 12px}
+.view{transition:opacity .3s var(--ease),transform .3s var(--ease);min-height:0;max-height:100%;display:flex;flex-direction:column}
+.view.out{opacity:0;transform:translateY(-10px)}
+.view.pre{opacity:0;transform:translateY(14px)}
+
+.hello{text-align:center;padding:0 8px}
+.hello .date{font-size:15px;color:var(--text3);letter-spacing:.01em}
+.hello h1{font-size:40px;font-weight:600;letter-spacing:-.03em;line-height:1.1;margin-top:10px}
+.hello p{font-size:19px;line-height:1.5;color:var(--text2);margin:14px auto 0;max-width:22em;text-wrap:balance}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:34px}
+.chip{
+  height:38px;padding:0 15px;border-radius:19px;background:var(--chip);font-size:15px;color:var(--text);
+  transition:background .2s ease-out,transform .2s ease-out;white-space:nowrap;
+}
+.chip:hover{background:var(--chip-h)}
+.chip:active{transform:scale(.97)}
+
+/* answer card */
+.card{
+  background:var(--card); border-radius:30px; box-shadow:var(--shadow);
+  padding:26px 26px 22px; position:relative; touch-action:pan-y;
+  min-height:0; flex:0 1 auto; overflow:auto; scrollbar-width:none;
+}
+.card::-webkit-scrollbar{display:none}
+.q{font-size:15px;color:var(--text3);padding-right:36px;display:flex;gap:6px;align-items:baseline}
+.q b{font-weight:500;color:var(--text2)}
+.close{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:17px;display:grid;place-items:center;color:var(--text3);transition:background .2s ease-out}
+.close:hover{background:var(--chip)}
+.close svg{width:16px;height:16px}
+.lead{font-size:30px;line-height:1.22;font-weight:600;letter-spacing:-.025em;margin-top:14px;text-wrap:balance}
+.detail{font-size:18px;line-height:1.55;color:var(--text2);margin-top:12px;text-wrap:pretty}
+.fig{display:flex;gap:10px;margin-top:20px}
+.fig > div{flex:1;background:var(--inset);border-radius:18px;padding:13px 12px;min-width:0}
+.fig .v{font-size:clamp(16px,4.6vw,20px);font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fig .l{font-size:13px;color:var(--text3);margin-top:3px}
+.prog{margin-top:20px;background:var(--inset);border-radius:18px;padding:14px 16px}
+.prog .row{display:flex;justify-content:space-between;font-size:14px;color:var(--text3);gap:10px}
+.prog .row b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.track{height:6px;border-radius:3px;background:var(--line);margin-top:10px;overflow:hidden}
+.track i{display:block;height:100%;border-radius:3px;background:var(--bar);width:0;transition:width .9s var(--ease) .15s}
+.plan{list-style:none;margin-top:18px;counter-reset:p}
+.plan li{counter-increment:p;display:grid;grid-template-columns:30px 1fr;gap:6px;padding:12px 0;border-top:1px solid var(--line);font-size:18px;line-height:1.45}
+.plan li:first-child{border-top:0}
+.plan li::before{content:counter(p);font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums}
+.plan li span{display:block;font-size:14px;color:var(--text3);margin-top:2px}
+.foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:22px}
+.open{font-size:15px;color:var(--link);text-decoration:none;display:inline-flex;align-items:center;gap:4px;height:38px;padding:0 4px;margin-left:auto}
+.open:hover{text-decoration:underline}
+.src{font-size:13px;color:var(--text3);margin-top:16px}
+.thinking{display:flex;gap:9px;margin-top:22px;height:30px;align-items:center}
+.thinking i{width:10px;height:10px;border-radius:50%;background:var(--text3);opacity:.35;animation:dot 1.2s ease-in-out infinite}
+.thinking i:nth-child(2){animation-delay:.15s}.thinking i:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,100%{opacity:.25;transform:translateY(0)}40%{opacity:.8;transform:translateY(-4px)}}
+
+/* Gemini metni */
+.gen{margin-top:14px;font-size:18px;line-height:1.55;color:var(--text2);text-wrap:pretty}
+.gen p+p,.gen p+ul,.gen p+ol,.gen ul+p,.gen ol+p{margin-top:10px}
+.gen > p:first-child{font-size:24px;line-height:1.3;font-weight:600;letter-spacing:-.02em;color:var(--text)}
+.gen b{color:var(--text);font-weight:600}
+.gen ul,.gen ol{padding-left:1.2em;margin-top:8px}
+.gen li{margin-top:4px}
+.gen:empty::before{content:"";display:inline-block;width:9px;height:22px;border-radius:2px;background:var(--text3);opacity:.5;animation:dot 1s ease-in-out infinite}
+
+.pager{display:flex;justify-content:center;gap:6px;margin-top:14px;min-height:6px}
+.pager i{width:6px;height:6px;border-radius:3px;background:var(--line);transition:width .25s ease-out,background .25s ease-out}
+.pager i.on{width:16px;background:var(--text3)}
+.hint{text-align:center;font-size:13px;color:var(--text3);margin-top:8px;min-height:18px}
+
+/* dock */
+.dock{padding:6px 0 calc(10px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:8px;position:relative}
+.dock-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%;height:96px}
+.side{justify-self:start;width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--text2);transition:background .2s ease-out}
+.side:last-child{justify-self:end}
+.side:hover{background:var(--chip)}
+.side svg{width:22px;height:22px}
+.status{font-size:15px;color:var(--text3);height:20px;text-align:center;transition:opacity .25s ease-out;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* veri durumu göstergesi */
+.vstat{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);height:28px;padding:0 10px;border-radius:14px;transition:background .2s ease-out}
+.vstat:hover{background:var(--chip)}
+.dots{display:inline-flex;gap:4px}
+.dot{width:7px;height:7px;border-radius:50%;background:transparent;box-shadow:inset 0 0 0 1.5px var(--text3)}
+.dot.ok{background:var(--ok);box-shadow:none}
+.dot.cached{background:var(--warn);box-shadow:none}
+.dot.err{background:var(--err);box-shadow:none}
+.dot.loading{background:var(--text3);box-shadow:none;animation:dot 1s ease-in-out infinite}
+
+/* kenar ışığı: logo/kmN.js çizer (#kmEdge) */
+@keyframes spin{to{--a:360deg}}
+
+/* type field */
+.typebar{
+  position:fixed;left:50%;transform:translate(-50%,16px);width:min(680px,100%);
+  bottom:var(--kb);padding:10px max(16px,env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+  z-index:20;opacity:0;pointer-events:none;transition:opacity .25s ease-out,transform .25s var(--ease);
+}
+body.typing .typebar{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+body.typing .dock-row,body.typing .vstat,body.typing .status{opacity:0;pointer-events:none}
+.typebar form{
+  display:flex;align-items:center;gap:6px;background:var(--card);border-radius:26px;box-shadow:var(--shadow);
+  padding:6px 6px 6px 8px;position:relative;
+}
+.typebar form{box-shadow:var(--shadow),0 0 0 1px var(--line)}
+.typebar input{flex:1;min-width:0;border:0;background:transparent;height:40px;font-size:17px;padding:0 8px;outline:none}
+.typebar input::placeholder{color:var(--text3)}
+.round{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;color:var(--text2);flex:none;transition:background .2s ease-out}
+.round:hover{background:var(--chip)}
+.round.send{background:var(--text);color:var(--bg)}
+.round.send:hover{background:var(--text);opacity:.85}
+.round svg{width:20px;height:20px}
+
+/* sheets */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .3s ease-out;z-index:30}
+.sheet{
+  position:fixed;left:50%;bottom:0;width:min(680px,100%);max-height:70dvh;transform:translate(-50%,104%);
+  background:var(--card);border-radius:28px 28px 0 0;z-index:31;transition:transform .35s var(--ease),visibility 0s linear .35s;visibility:hidden;
+  padding:10px 20px calc(20px + env(safe-area-inset-bottom));overflow:auto;box-shadow:var(--shadow);overscroll-behavior:contain;
+}
+.sheet.tall{max-height:90dvh}
+body.sheet-open .scrim{opacity:1;pointer-events:auto}
+.sheet.on{transform:translate(-50%,0);visibility:visible;transition:transform .35s var(--ease),visibility 0s}
+.grab{width:36px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+.sheet h2{font-size:20px;font-weight:600;letter-spacing:-.01em;margin-bottom:6px}
+.sheet ul{list-style:none}
+#histList li button{width:100%;text-align:left;padding:14px 4px;border-top:1px solid var(--line);display:block;border-radius:0}
+#histList li:first-child button{border-top:0}
+#histList li button:hover{background:var(--chip)}
+.sheet .hq{font-size:13px;color:var(--text3)}
+.sheet .ha{font-size:16px;margin-top:3px;line-height:1.4}
+.sheet .empty{color:var(--text3);font-size:15px;padding:12px 0}
+
+.sh-head{display:flex;justify-content:space-between;align-items:center;margin:0 -20px 4px;padding:6px 20px;position:sticky;top:-10px;background:var(--card);z-index:2}
+.sh-head h2{margin:0}
+.done-btn{height:36px;padding:0 12px;border-radius:18px;color:var(--link);font-size:16px;font-weight:600}
+.done-btn:hover{background:var(--chip)}
+.sec{padding:18px 0;border-top:1px solid var(--line)}
+.sec:first-of-type,.sh-head + .sec{border-top:0}
+.sec h3{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.help{font-size:14px;line-height:1.45;color:var(--text3);margin-top:6px}
+.help a{color:var(--link)}
+.field{display:flex;gap:8px;margin-top:12px}
+.field.col{flex-direction:column}
+.inp{flex:1;min-width:0;height:46px;border-radius:14px;background:var(--inset);border:1px solid transparent;padding:0 14px;font-size:16px;outline:none}
+.inp:focus{border-color:var(--link)}
+.btn{height:46px;padding:0 18px;border-radius:14px;background:var(--text);color:var(--bg);font-size:16px;font-weight:600;white-space:nowrap;transition:opacity .2s ease-out}
+.btn:hover{opacity:.85}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.sec2{background:var(--chip);color:var(--text)}
+.btn.wide{width:100%;margin-top:12px}
+.small{font-size:13px;color:var(--text3);margin-top:8px;line-height:1.4;min-height:1em}
+.small.bad{color:var(--err)}
+.small.good{color:var(--ok)}
+.linked{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;background:var(--inset);border-radius:14px;padding:10px 10px 10px 14px;font-size:15px}
+.linked span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linked .btn{height:36px;padding:0 12px;font-size:14px}
+.srcs li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:11px 0;border-top:1px solid var(--line);font-size:16px}
+.srcs li:first-child{border-top:0}
+.srcs .dot{width:9px;height:9px}
+.srcs .st{font-size:14px;color:var(--text3);text-align:right}
+.srcs .why{grid-column:2 / 4;font-size:13px;color:var(--text3);margin-top:-4px;line-height:1.4}
+.onb li{display:grid;grid-template-columns:36px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+.onb li:first-child{border-top:0}
+.onb .n{width:30px;height:30px;border-radius:15px;background:var(--chip);display:grid;place-items:center;font-size:14px;font-weight:600;color:var(--text2)}
+.onb b{font-weight:600;font-size:16px}
+.onb p{font-size:14px;color:var(--text3);line-height:1.45;margin-top:2px}
+.onb-lead{font-size:16px;line-height:1.5;color:var(--text2);margin:6px 0 10px}
+.row2{display:flex;gap:8px;margin-top:16px}
+.row2 .btn{flex:1}
+
+/* logo seçimi */
+.logos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.logo-opt{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 8px 14px;border-radius:18px;background:var(--inset);border:2px solid transparent;font-size:15px;transition:border-color .2s ease-out}
+.logo-opt[aria-checked="true"]{border-color:var(--text)}
+.logo-opt b{font-weight:600}
+.km-btn.lprev{width:56px;height:56px;pointer-events:none}
+#pillRow[hidden]{display:none}
+/* Almanca çalışma */
+.q span{color:var(--text3)}
+.q .cnt{margin-left:auto;font-variant-numeric:tabular-nums}
+.pcard .q{padding-right:44px}
+.plead{font-size:34px}
+.lead.okc{color:var(--ok)}
+.lead.noc{color:var(--text)}
+.segrow{display:flex;align-items:center;gap:8px;margin-top:20px;font-size:14px;color:var(--text3)}
+.segrow span{margin-right:auto}
+.chip.seg{min-width:52px}
+.chip[aria-pressed="true"],.chip.strong{background:var(--text);color:var(--bg)}
+.pmodes{list-style:none;margin-top:16px}
+.pmodes li button{width:100%;text-align:left;padding:13px 4px;border-top:1px solid var(--line);display:grid;gap:2px;border-radius:0}
+.pmodes li:first-child button{border-top:0}
+.pmodes li button:hover{background:var(--chip)}
+.pmodes b{font-size:18px;font-weight:600}
+.pmodes span{font-size:14px;color:var(--text3)}
+.pex{margin-top:14px;font-size:17px;line-height:1.5;color:var(--text2)}
+.pex:empty{display:none}
+.pex p+p{margin-top:6px}
+.pex .de{font-size:19px;color:var(--text);font-weight:500}
+.pex .tr{color:var(--text3)}
+.pex.chat .de{font-size:22px;line-height:1.35}
+.detail.you{font-size:15px;color:var(--text3)}
+.track.pt{margin-top:22px}
+.phint{text-align:center;font-size:13px;color:var(--text3);margin-top:14px}
+.sent{font-size:14px;color:var(--ok);margin-top:12px;line-height:1.45}
+@media (min-width:700px){
+  .lead{font-size:34px}
+  .hello h1{font-size:48px}
+}
+@media (max-width:400px){ .card{padding:24px 22px 20px} }
+@media (max-height:700px){
+  .hello h1{font-size:34px}.chips{margin-top:24px}.lead{font-size:26px}.dock-row{height:84px}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition-duration:.01ms !important}
+  .view{transition:opacity .2s linear !important}
+  .view.out,.view.pre{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="km-edge" id="kmEdge" aria-hidden="true"></div>
+
+<div class="app">
+  <header class="top">
+    <div class="grp">
+      <button class="ghost" id="histBtn" hidden aria-label="Önceki cevaplar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+        Önceki
+      </button>
+    </div>
+    <div class="grp">
+      <button class="ghost" id="speakBtn" aria-pressed="false" aria-label="Cevapları sesli oku">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path id="wave" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+        <span id="speakLbl">Sesli</span>
+      </button>
+      <button class="ghost icon" id="setBtn" aria-label="Ayarlar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage" aria-live="polite"></main>
+
+  <footer class="dock">
+    <div class="status" id="status"></div>
+    <div class="dock-row">
+      <span></span>
+      <!-- ===== ORB YUVASI: görünüm orb.js'den gelir (KMOrb.mount) ===== -->
+      <button id="orb" aria-label="Konuşmak için dokun"></button>
+      <!-- ===== /ORB YUVASI ===== -->
+      <button class="side" id="kbBtn" aria-label="Yazarak sor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="3"/><path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M8 14h8"/></svg>
+      </button>
+    </div>
+    <button class="vstat" id="vstat" aria-label="Veri durumu"><span class="dots" id="vdots"></span><span id="vtext">Veriler yükleniyor…</span></button>
+  </footer>
+</div>
+
+<div class="typebar" id="typebar">
+  <form id="form" autocomplete="off">
+    <button type="button" class="round" id="micBtn" aria-label="Sesle sor">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+    </button>
+    <label for="inp" class="sr">Sorunu yaz</label>
+    <input id="inp" type="text" placeholder="Bir şey sor" enterkeyhint="send">
+    <button type="submit" class="round send" aria-label="Gönder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+    </button>
+  </form>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<section class="sheet" id="histSheet" role="dialog" aria-modal="true" aria-label="Önceki cevaplar">
+  <div class="grab"></div>
+  <h2>Önceki</h2>
+  <ul id="histList"></ul>
+</section>
+
+<section class="sheet tall" id="setSheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <div class="grab"></div>
+  <div class="sh-head"><h2 id="setTitle">Ayarlar</h2><button class="done-btn" data-act="close">Bitti</button></div>
+
+  <div class="sec">
+    <h3>Veri durumu</h3>
+    <ul class="srcs" id="srcList"></ul>
+    <button class="btn sec2 wide" id="refreshBtn">Şimdi yenile</button>
+  </div>
+
+  <div class="sec">
+    <h3>Logo</h3>
+    <div class="logos" id="logoBox" role="radiogroup" aria-label="Logo">
+      <button class="logo-opt" role="radio" data-logo="7"><span class="km-btn lprev" data-prev="7" aria-hidden="true"></span><b>Koyu cam küre</b></button>
+      <button class="logo-opt" role="radio" data-logo="1"><span class="km-btn lprev" data-prev="1" aria-hidden="true"></span><b>Sıvı küre</b></button>
+    </div>
+    <div class="segrow" id="pillRow"><span>Konum</span><button class="chip seg" data-pill="0">Alt düğme</button><button class="chip seg" data-pill="1">Üstten hap</button></div>
+  </div>
+
+  <div class="sec">
+    <h3>Gemini API anahtarı</h3>
+    <p class="help">Anahtar girersen her soruyu Gemini, uygulamalarındaki güncel verilere bakarak cevaplar. Anahtarı <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a>’dan ücretsiz alabilirsin. Yalnızca bu cihazda saklanır.</p>
+    <div id="gemBox"></div>
+  </div>
+
+  <div class="sec">
+    <h3>Cüzdan hesabına bağlan</h3>
+    <p class="help">Cüzdan’da “Bulut eşitleme” için kullandığın e-posta ve şifre. Şifre saklanmaz; yalnızca oturum bu cihazda açık kalır. Veriler sadece okunur.</p>
+    <div id="czBox"></div>
+  </div>
+
+  <div class="sec">
+    <h3>KriptoBot kayıt dosyası</h3>
+    <p class="help">Bot kurulumunun sonunda gösterilen “Kayıt dosyası” linkini (…/export.csv?token=…) yapıştır. Link yalnızca bu cihazda saklanır.</p>
+    <div id="botBox"></div>
+  </div>
+
+  <div class="sec">
+    <button class="btn sec2 wide" id="onbAgain">Tanıtımı yeniden göster</button>
+  </div>
+</section>
+
+<section class="sheet tall" id="onbSheet" role="dialog" aria-modal="true" aria-labelledby="onbTitle">
+  <div class="grab"></div>
+  <h2 id="onbTitle">Merhaba Yusuf</h2>
+  <p class="onb-lead">Ben senin asistanınım. Uygulamalarındaki gerçek verilere bakıp sorularını kısaca cevaplarım. Hiçbir şeyi değiştirmem, yalnızca okurum.</p>
+  <ul class="onb">
+    <li><span class="n">1</span><div><b>YKS Takip</b><p>Kendiliğinden bağlı. Denemelerin, soruların ve planın.</p></div></li>
+    <li><span class="n">2</span><div><b>DeutschFlow</b><p>Kendiliğinden bağlı. Serin, kartların ve derslerin.</p></div></li>
+    <li><span class="n">3</span><div><b>Cüzdan</b><p>Ayarlar’dan Cüzdan e-postan ve şifrenle bir kez bağlan.</p></div></li>
+    <li><span class="n">4</span><div><b>KriptoBot</b><p>Ayarlar’a botun “Kayıt dosyası” linkini yapıştır.</p></div></li>
+    <li><span class="n">★</span><div><b>Gemini anahtarı (isteğe bağlı)</b><p>Girersen her türlü soruyu anlarım: plan, tavsiye, Almanca yardımı. Girmezsen hazır sorularla çalışırım.</p></div></li>
+  </ul>
+  <div class="row2">
+    <button class="btn sec2" data-act="onb-done">Başla</button>
+    <button class="btn" data-act="onb-settings">Ayarları aç</button>
+  </div>
+</section>
+
+<script src="logo/km1.js"></script>
+<script src="logo/km7.js"></script>
+<script src="orb.js"></script>
+<script src="veri.js"></script>
+<script src="dersler.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const stage = $('#stage'), status = $('#status');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const { ymd, addDays, dayDiff, hhmm, MONTHS, LS } = KMData.util;
+const L = {
+  yks:'https://yusufselimeryigit-bit.github.io/yks-takip/',
+  de:'https://yusufselimeryigit-bit.github.io/DeutschFlow-AI/',
+  cz:'https://yusufselimeryigit-bit.github.io/harcama-takip/',
+  bot:'https://t.me/'
+};
+const APP = {yks:'YKS Takip', de:'DeutschFlow', cz:'Cüzdan', bot:'KriptoBot'};
+const APP_ACC = {yks:'YKS Takip’i', de:'DeutschFlow’u', cz:'Cüzdan’ı', bot:'KriptoBot’u'};
+const DAYS = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+
+/* ---------- orb + kenar ışığı durumu ---------- */
+KMOrb.mount($('#orb'));
+function mode(m){
+  document.body.classList.remove('listening','thinking','speaking');
+  if (m !== 'idle') document.body.classList.add(m);
+  KMOrb.setState(m);
+}
+
+/* ---------- biçimlendirme ---------- */
+const nfN = new Intl.NumberFormat('tr-TR',{maximumFractionDigits:2});
+const N = n => nfN.format(n);
+const TL = (n, dec = true) => new Intl.NumberFormat('tr-TR',{minimumFractionDigits:dec?2:0,maximumFractionDigits:dec?2:0}).format(n) + ' ₺';
+const USD = n => new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n) + ' USDT';
+const dTR = s => { if (!s) return ''; const [y,m,d] = s.split('-').map(Number); return `${d} ${MONTHS[m-1]}` + (y !== new Date().getFullYear() ? ' ' + y : ''); };
+const relDay = s => { const g = dayDiff(s, ymd()); return g === 0 ? 'bugün' : g === 1 ? 'dün' : `${g} gün önce`; };
+const relTime = iso => { const m = Math.round((Date.now() - Date.parse(iso)) / 6e4); if (!isFinite(m)) return ''; if (m < 60) return `${Math.max(1,m)} dakika önce`; const h = Math.round(m/60); if (h < 24) return `${h} saat önce`; return `${Math.round(h/24)} gün önce`; };
+const joinTR = a => a.length < 2 ? (a[0] || '') : a.slice(0,-1).join(', ') + ' ve ' + a[a.length-1];
+const sentences = s => String(s || '').split(/(?<=\.)\s+(?=[A-ZÇĞİÖŞÜ0-9])/).filter(Boolean);
+const minTR = m => m >= 60 ? `${Math.floor(m/60)} sa ${m%60 ? (m%60)+' dk' : ''}`.trim() : `${m} dk`;
+const pct = (a, b) => b ? Math.max(0, Math.min(100, Math.round(a / b * 100))) : 0;
+const signed = n => (n > 0 ? '+' : n < 0 ? '−' : '') + N(Math.abs(n));
+
+/* ---------- canlı veri erişimi ---------- */
+const S = k => KMData.state[k].data;
+const staleNote = k => { const s = KMData.state[k]; if (s.status === 'ok' || !s.data) return ''; return ` (Son veri ${hhmm(s.at)}${ymd(new Date(s.at)) !== ymd() ? ', ' + dTR(ymd(new Date(s.at))) : ''}.)`; };
+function need(k){
+  const s = KMData.state[k], name = KMData.name(k);
+  if (s.status === 'loading' || s.status === 'idle') return { lead:`${name} verisi yükleniyor.`, detail:'Birkaç saniye sonra tekrar sor.', chips:['Veriler güncel mi?'] };
+  if (s.status === 'err') return { lead:`${name} verisine şu an ulaşamadım.`, detail:`Sebep: ${s.err}.`, chips:['Veriler güncel mi?'], settings:true };
+  const how = { cz:'Ayarlar’dan Cüzdan hesabınla bir kez bağlanırsan harcamalarını, bütçelerini ve ödemelerini söyleyebilirim.', bot:'Ayarlar’a botun “Kayıt dosyası” linkini yapıştırırsan durumunu söyleyebilirim.' }[k] || '';
+  return { lead:`${name} henüz bağlı değil.`, detail:how, chips:['Bugün ne var?'], settings:true };
+}
+const czNextPay = c => { if (!c || !c.ozet || !c.ozet.odemeler || /görünmüyor/.test(c.ozet.odemeler)) return null; return c.ozet.odemeler.replace(/^Yaklaşan ödemeler:\s*/, '').split(';')[0].replace(/\.$/, '').trim(); };
+
+/* ---------- cevaplar (hepsi canlı veriden) ---------- */
+const B = {
+  today(){
+    const y = S('yks'), d = S('de'), c = S('cz'), b = S('bot');
+    if (!y && !d && !c && !b) return need('yks');
+    const parts = [], fig = [], det = [];
+    if (y){
+      const left = Math.max(0, y.gunlukSoruHedefi - y.bugun.soru);
+      parts.push(left ? `${left} soru` : 'tamamlanmış bir soru hedefi');
+      fig.push([`${y.bugun.soru} / ${y.gunlukSoruHedefi}`, 'soru']);
+      const nb = y.bugunPlan.find(x => !x.bitti);
+      if (nb) det.push(`Sıradaki blok ${nb.saat} ${nb.ders}${nb.konu ? ' · ' + nb.konu : ''}.`);
+      else if (y.bugunPlan.length) det.push('Bugünkü plan blokların bitti.');
+    }
+    if (d && d.kartlar.bugunTekrar){ parts.push(`${d.kartlar.bugunTekrar} Almanca kart`); fig.push([String(d.kartlar.bugunTekrar), 'Almanca kart']); }
+    const pay = czNextPay(c);
+    if (pay){ parts.push('bir ödeme'); det.push(`En yakın ödeme: ${pay}.`); }
+    if (b){ const m = b.stratejiler.find(s => s.id === 'main'); if (m && m.acikPozisyon.length) det.push(`Botta ${m.acikPozisyon.length} açık pozisyon var.`); }
+    if (y && y.sinavaGun != null) fig.push([String(y.sinavaGun), 'gün sınava']);
+    if (!c) det.push('Cüzdan bağlı değil.');
+    return { lead: parts.length ? `Bugün ${joinTR(parts)} seni bekliyor.` : 'Bugün için bekleyen bir şey görünmüyor.', detail: det.slice(0,3).join(' '), fig: fig.slice(0,3), chips:['Ne yapmalıyım?','YKS durumum','Yaklaşan ödemeler'] };
+  },
+  yks(){
+    const y = S('yks'); if (!y) return need('yks');
+    const t = y.sonTYT, p = y.oncekiTYT, a = y.sonAYT;
+    let lead, det = [];
+    if (t){
+      lead = `Son TYT netin ${N(t.toplamNet)}.`;
+      det.push(`${t.ad}, ${dTR(t.tarih)}${p ? `; bir öncekine göre ${signed(t.toplamNet - p.toplamNet)} net` : ''}.`);
+    } else lead = 'Henüz kayıtlı TYT denemen yok.';
+    if (a) det.push(`Son AYT ${N(a.toplamNet)} net (${dTR(a.tarih)}).`);
+    if (y.sinavaGun != null) det.push(`Sınava ${y.sinavaGun} gün var.`);
+    return {
+      lead, detail: det.join(' ') + staleNote('yks'),
+      fig: [[t ? N(t.toplamNet) : '—','son TYT'], [a ? N(a.toplamNet) : '—','son AYT'], [y.sinavaGun != null ? String(y.sinavaGun) : '—','gün kaldı']],
+      prog: ['Bugünkü soru hedefi', `${y.bugun.soru} / ${y.gunlukSoruHedefi}`, pct(y.bugun.soru, y.gunlukSoruHedefi)],
+      chips:['Deneme gelişimim','Zayıf konularım','Bugünkü planım'], app:'yks',
+      say: [lead, ...det].join(' ')
+    };
+  },
+  trend(){
+    const y = S('yks'); if (!y) return need('yks');
+    const tyts = y.sonDenemeler.filter(e => e.tur === 'TYT').slice(0,3);
+    if (!tyts.length) return { lead:'Henüz TYT denemen yok.', chips:['YKS durumum'], app:'yks' };
+    const det = [];
+    if (y.enIyiTYT) det.push(`En iyi TYT’n ${N(y.enIyiTYT.toplamNet)} (${y.enIyiTYT.ad}, ${dTR(y.enIyiTYT.tarih)}).`);
+    if (y.hedefNet.TYT && y.sonTYT) det.push(`${N(y.hedefNet.TYT)} hedefine ${N(Math.max(0, y.hedefNet.TYT - y.sonTYT.toplamNet))} net var.`);
+    return {
+      lead: `Son ${tyts.length} TYT: ${tyts.map(e => N(e.toplamNet)).join(', ')}.`,
+      detail: det.join(' ') + staleNote('yks'),
+      fig: [[N(tyts[0].toplamNet),'son TYT'], [y.son3TYTOrt != null ? N(y.son3TYTOrt) : '—','son 3 ort.'], [y.hedefNet.TYT ? N(y.hedefNet.TYT) : '—','hedef']],
+      chips:['Zayıf konularım','YKS durumum'], app:'yks'
+    };
+  },
+  weak(){
+    const y = S('yks'); if (!y) return need('yks');
+    const w = y.zayif;
+    if (!w.length) return { lead:'Şu an alarm veren bir dersin yok.', detail:'Son 30 günde ve son denemelerde doğruluğu %65’in altında kalan ders ya da konu görünmüyor.', chips:['Deneme gelişimim','YKS durumum'], app:'yks' };
+    const top = w.slice(0,2).map(x => x.ad);
+    return {
+      lead: `En zayıf alanların ${joinTR(top)}.`,
+      detail: w.slice(0,3).map(x => `${x.ad} %${x.dogruluk} doğru${x.ders ? ' (' + x.ders + ')' : ''}`).join(', ') + '. Bugünkü sorularının bir kısmını bunlardan seçebilirsin.' + staleNote('yks'),
+      chips:['Bugünkü planım','YKS durumum'], app:'yks'
+    };
+  },
+  yksplan(){
+    const y = S('yks'); if (!y) return need('yks');
+    const p = y.bugunPlan;
+    if (!p.length){
+      const nx = y.sonrakiPlanGunu;
+      return { lead:'Bugün için plan bloğun yok.', detail: nx ? `Sonraki planlı gün ${dTR(nx.tarih)}, ${nx.blok} blok.` : (y.sonPlanGunu ? `Son planın ${dTR(y.sonPlanGunu)} tarihindeydi.` : 'YKS Takip’te plan ekleyebilirsin.'), chips:['YKS durumum','Ne yapmalıyım?'], app:'yks' };
+    }
+    const done = p.filter(x => x.bitti).length, next = p.filter(x => !x.bitti);
+    return {
+      lead: `Bugün ${p.length} blok var, ${done ? done + ' tanesi tamam' : 'henüz biri bitmedi'}.`,
+      detail: next.length ? 'Sırada ' + joinTR(next.slice(0,3).map(x => `${x.ders} ${x.saat}`)) + ' var.' : 'Hepsini bitirdin.',
+      prog: ['Bloklar', `${done} / ${p.length}`, pct(done, p.length)], chips:['Zayıf konularım','YKS durumum'], app:'yks'
+    };
+  },
+  de(){
+    const d = S('de'); if (!d) return need('de');
+    const k = d.kurs, det = [];
+    const lead = d.seri > 0 ? `Almancada ${d.seri} günlük serin var.` : `Almanca serin şu an sıfır; son çalışman ${d.sonCalisma ? relDay(d.sonCalisma) : 'yok'}.`;
+    if (d.kartlar.bugunTekrar) det.push(`Bugün ${d.kartlar.bugunTekrar} kart tekrar bekliyor.`);
+    if (k.siradaki) det.push(`Sıradaki ders ${k.siradaki}.`);
+    det.push(`Son 7 günde ${d.son7Gun.ders} ders, ${d.son7Gun.dakika} dakika.`);
+    return { lead, detail: det.join(' ') + staleNote('de'), prog:['A1-A2 dersleri', `${k.biten} / ${k.toplam}`, pct(k.biten, k.toplam)], chips:['Almanca çalış','Günün kelimesi','Zayıf Almanca derslerim'], app:'de' };
+  },
+  deweak(){
+    const d = S('de'); if (!d) return need('de');
+    const w = d.zayifDersler, sk = d.beceriler['Konuşma'], det = [];
+    if (d.enCokYanlis.length) det.push(`En çok yanlış: ${d.enCokYanlis.slice(0,2).map(x => `${x.ders} (${x.yanlis})`).join(', ')}.`);
+    if (sk) det.push(`Konuşma becerin %${sk.ortalama}.`);
+    return { lead: w.length ? `En düşük puanlı derslerin ${joinTR(w.slice(0,2).map(x => `${x.ders.split(' · ')[0]} (%${x.puan})`))}.` : 'Düşük puanlı dersin yok.', detail: det.join(' ') + staleNote('de'), chips:['Almancam nasıl gidiyor?','Günün kelimesi'], app:'de' };
+  },
+  word(){
+    const d = S('de'); if (!d) return need('de');
+    const w = d.gununKelimesi;
+    if (!w) return { lead:'Kartlarında henüz kelime yok.', chips:['Almancam nasıl gidiyor?'], app:'de' };
+    return { lead:`Günün kelimesi: ${w.de}.`, detail:`Anlamı “${w.tr}”.` + (w.ornek ? ` Örnek: “${w.ornek}”${w.ornekTr ? ' — ' + w.ornekTr : ''}` : ''), chips:['Almancam nasıl gidiyor?','Ne yapmalıyım?'], app:'de', say:`Günün kelimesi: ${w.de}. Anlamı ${w.tr}.` };
+  },
+  spend(){
+    const c = S('cz'); if (!c) return need('cz');
+    const f = c.ayrinti;
+    if (f){
+      const top = f.kategoriler[0];
+      const det = [];
+      if (f.degisimYuzde != null) det.push(`Geçen ayın aynı dönemine göre %${Math.abs(f.degisimYuzde)} ${f.degisimYuzde >= 0 ? 'fazla' : 'az'}.`);
+      if (top) det.push(`En çok ${top.kategori}: ${TL(top.tutar, false)}.`);
+      const over = f.butceler.filter(b => b.asildi);
+      if (over.length) det.push(`${joinTR(over.map(b => b.kategori))} bütçesini aştın.`);
+      return { lead:`${f.ay} ayında ${TL(f.buAyHarcama, false)} harcadın.`, detail: det.join(' ') + staleNote('cz'),
+        fig: [[TL(f.buAyHarcama, false),'bu ay'], [f.degisimYuzde != null ? (f.degisimYuzde >= 0 ? '+' : '−') + '%' + Math.abs(f.degisimYuzde) : '—','geçen aya'], top ? [TL(top.tutar, false), top.kategori.toLocaleLowerCase('tr-TR')] : ['—','kategori']],
+        chips:['Bütçem nasıl?','Bakiyem ne kadar?','Yaklaşan ödemeler'], app:'cz' };
+    }
+    if (c.ozet && c.ozet.buAy){ const s = sentences(c.ozet.buAy.split(' Bütçeler:')[0]); return { lead:s[0], detail:s.slice(1).join(' ') + (c.sifreli ? ' (Ayrıntılı veriler şifreli olduğu için Cüzdan’ın özetini kullanıyorum.)' : '') + staleNote('cz'), chips:['Bütçem nasıl?','Yaklaşan ödemeler'], app:'cz' }; }
+    return { lead:'Bu ayın harcama özeti bulunamadı.', detail:'Cüzdan’ı bir kez açıp eşitlemen gerekebilir.', app:'cz', chips:['Veriler güncel mi?'] };
+  },
+  budget(){
+    const c = S('cz'); if (!c) return need('cz');
+    const f = c.ayrinti;
+    if (f && f.butceler.length){
+      const bs = [...f.butceler].sort((a,b) => (b.yuzde||0) - (a.yuzde||0)), b0 = bs[0];
+      return { lead: b0.asildi ? `${b0.kategori} bütçeni %${b0.yuzde - 100} aştın.` : `En dolu bütçen ${b0.kategori}: %${b0.yuzde}.`,
+        detail: bs.slice(1,3).map(b => `${b.kategori} %${b.yuzde} (${b.asildi ? TL(-b.kalan, false) + ' aşıldı' : TL(b.kalan, false) + ' kaldı'})`).join(', ') + (bs.length > 1 ? '.' : '') + staleNote('cz'),
+        prog:[`${b0.kategori} bütçesi`, `${TL(b0.harcanan, false)} / ${TL(b0.limit, false)}`, Math.min(100, b0.yuzde || 0)], chips:['Bu ay ne harcadım?','Yaklaşan ödemeler'], app:'cz' };
+    }
+    const m = c.ozet && c.ozet.buAy && c.ozet.buAy.match(/Bütçeler:\s*(.*)$/);
+    if (m) return { lead:'Bütçelerin şöyle:', detail: m[1] + staleNote('cz'), chips:['Bu ay ne harcadım?'], app:'cz' };
+    return { lead:'Cüzdan’da tanımlı bütçe görünmüyor.', chips:['Bu ay ne harcadım?'], app:'cz' };
+  },
+  balance(){
+    const c = S('cz'); if (!c) return need('cz');
+    if (c.ozet && c.ozet.durum){ const s = sentences(c.ozet.durum); return { lead:s[0], detail:s.slice(1).join(' ') + staleNote('cz'), chips:['Yaklaşan ödemeler','Bu ay ne harcadım?'], app:'cz' }; }
+    if (c.ayrinti) { const h = c.ayrinti.hesaplar; return { lead: h.map(a => `${a.ad} ${TL(a.bakiye)}`).join(', ') + '.', chips:['Bu ay ne harcadım?'], app:'cz' }; }
+    return need('cz');
+  },
+  pay(){
+    const c = S('cz'); if (!c) return need('cz');
+    if (!c.ozet) return { lead:'Ödeme özeti bulunamadı.', detail:'Cüzdan’ı bir kez açınca özet yenilenir.', app:'cz' };
+    const o = c.ozet.odemeler;
+    if (/görünmüyor/.test(o)) return { lead:o, chips:['Bakiyem ne kadar?'], app:'cz' };
+    const items = o.replace(/^Yaklaşan ödemeler:\s*/, '').replace(/\.$/, '').split(';').map(x => x.trim()).filter(Boolean);
+    return { lead:`En yakını: ${items[0]}.`, detail: items.length > 1 ? `Ardından ${joinTR(items.slice(1,4))}.` + staleNote('cz') : staleNote('cz').trim(), chips:['Bakiyem ne kadar?','Ne yapmalıyım?'], app:'cz' };
+  },
+  bot(){
+    const b = S('bot'); if (!b) return need('bot');
+    const m = b.stratejiler.find(s => s.id === 'main') || b.stratejiler[0];
+    const det = [];
+    if (m.acikPozisyon.length) det.push(`Açık: ${m.acikPozisyon.map(p => `${p.parite}${p.giris ? ' (giriş ' + N(p.giris) + ')' : ''}`).join(', ')}.`);
+    else det.push('Açık pozisyon yok.');
+    const ls = m.sonSinyaller[0];
+    if (ls) det.push(`Son sinyal ${ls.parite}, ${relTime(ls.zaman)}: ${ls.durum}.`);
+    if (m.buHafta.islem) det.push(`Bu hafta ${m.buHafta.islem} işlemin ${m.buHafta.kazanan} tanesi kazandı.`);
+    return { lead: m.bakiyeUSDT != null ? `Bot sanal modda, ana strateji bakiyesi ${USD(m.bakiyeUSDT)}.` : 'Bot sanal (kağıt) modda çalışıyor.', detail: det.join(' ') + staleNote('bot'),
+      fig: [[m.bakiyeUSDT != null ? N(m.bakiyeUSDT) : '—','USDT bakiye'], [String(m.acikPozisyon.length),'açık pozisyon'], [m.buHafta.islem ? `${m.buHafta.kazanan}/${m.buHafta.islem}` : '0','bu hafta kazanan']],
+      chips:['Diğer stratejiler','Ne yapmalıyım?'], app:'bot' };
+  },
+  shadow(){
+    const b = S('bot'); if (!b) return need('bot');
+    const l = b.stratejiler;
+    const best = [...l].filter(s => s.bakiyeUSDT != null).sort((a,c) => c.bakiyeUSDT - a.bakiyeUSDT)[0];
+    return { lead: best ? `${best.ad} önde.` : 'Stratejilerde henüz kapanan işlem yok.',
+      detail: l.map(s => `${s.ad}: ${s.bakiyeUSDT != null ? USD(s.bakiyeUSDT) : 'işlem yok'}${s.acikPozisyon.length ? ', ' + s.acikPozisyon.length + ' açık' : ''}`).join('; ') + '.' + staleNote('bot'),
+      chips:['Bot ne yaptı?','Bugün ne var?'], app:'bot' };
+  },
+  advice(){
+    const y = S('yks'), d = S('de'), c = S('cz');
+    const items = [];
+    const pay = czNextPay(c);
+    if (pay) items.push([`Ödemeyi unutma: ${pay}`, 'Cüzdan’daki en yakın ödeme bu.']);
+    if (y){
+      const left = Math.max(0, y.gunlukSoruHedefi - y.bugun.soru);
+      if (left) items.push([`${left} soru çöz`, y.zayif[0] ? `Bir kısmını ${y.zayif[0].ad}’dan seç (%${y.zayif[0].dogruluk} doğruluk).` : `Günlük hedefin ${y.gunlukSoruHedefi} soru.`]);
+      const nb = y.bugunPlan.find(x => !x.bitti);
+      if (nb) items.push([`${nb.saat} ${nb.ders} bloğunu yap`, nb.not || nb.konu || 'Bugünkü planında sırada.']);
+      if (y.yanlisDefteri.bakilmamis) items.push([`${y.yanlisDefteri.bakilmamis} yanlış sorunu gözden geçir`, 'Yanlış defterinde bakılmamış sorular var.']);
+    }
+    if (d){
+      if (d.kartlar.bugunTekrar) items.push([`${Math.min(d.kartlar.bugunTekrar, 30)} Almanca kartı tekrar et`, (d.kartlar.bugunTekrar > 30 ? `${d.kartlar.bugunTekrar} kart bekliyor; ilk 30 ile başla. ` : '') + (d.seri ? `${d.seri} günlük serin bozulmasın.` : 'Bugün çalışırsan yeni bir seri başlar.')]);
+      else if (d.kurs.siradaki) items.push([`${d.kurs.siradaki.split(' · ')[0]} dersini bitir`, d.kurs.siradaki.split(' · ')[1] || '']);
+    }
+    if (!items.length) return { lead:'Şu an önerecek bir şey bulamadım.', detail:'Veriler yüklenince tekrar sor.', chips:['Veriler güncel mi?'] };
+    const top = items.slice(0,3);
+    return { lead:'Bugün için şu adımları öneriyorum.', plan: top, chips:['Bugün ne var?','YKS durumum'],
+      say: 'Bugün için önerilerim: ' + top.map((x,i) => `${i+1}. ${x[0]}.`).join(' ') };
+  },
+  data(){
+    const rows = KMData.keys.map(k => [KMData.name(k), srcText(k)]);
+    const ok = KMData.keys.filter(k => KMData.state[k].status === 'ok').length;
+    return { lead:`${ok} / 4 kaynak güncel.`, plan: rows, chips:['Bugün ne var?'], settings:true };
+  },
+  hi(){ return { lead:'Merhaba Yusuf.', detail:'Bana günün, harcamaların, Almancan, YKS ya da bot hakkında sorabilirsin.', chips:['Bugün ne var?','Ne yapmalıyım?'] }; },
+  thanks(){ return { lead:'Rica ederim.', detail:'Başka bir şey merak edersen buradayım.', chips:['Bugün ne var?'] }; },
+  fallback(){ return { lead:'Bunu henüz anlayamadım.', detail: gemKey() ? 'Gemini’ye şu an ulaşamadım. Günün, harcamaların, ödemeler, Almanca, YKS ve bot hakkında hazır cevaplarım var.' : 'Hazır cevaplarım günün, harcamaların, ödemeler, Almanca, YKS ve bot hakkında. Her türlü soru için Ayarlar’dan Gemini anahtarı ekleyebilirsin.', chips:['Bugün ne var?','Bu ay ne harcadım?','Almancam nasıl gidiyor?','YKS durumum','Bot ne yaptı?'] }; }
+};
+const build = id => { try { return B[id](); } catch (e) { console.warn(e); return { lead:'Bu cevabı hazırlarken bir sorun oldu.', detail:String(e.message || e), chips:['Veriler güncel mi?'] }; } };
+
+/* ---------- niyet eşleştirici (çevrimdışı) ---------- */
+const norm = s => s.toLocaleLowerCase('tr-TR')
+  .replace(/[çğıöşüâî]/g, c => ({ç:'c',ğ:'g',ı:'i',ö:'o',ş:'s',ü:'u',â:'a',î:'i'})[c])
+  .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+const R = [
+  ['practice',5, ['almanca calis','kelime calis','kelime sor','almanca kelime sor','calisalim','pratik','almanca sohbet','sohbet edelim','ceviri','alistirma','almanca soru','dersten soru','beni test et']],
+  ['data',   3, ['veri','guncel mi','baglanti','senkron','yenile','kaynak']],
+  ['advice', 3, ['ne yapmaliyim','ne yapayim','oneri','oner','tavsiye','plan yap','oncelik','nereden basla']],
+  ['word',   3, ['gunun kelimesi','kelime ogret','yeni kelime','almanca kelime']],
+  ['deweak', 4, ['zayif almanca','almanca zayif','almanca eksik','telaffuz','konusma']],
+  ['trend',  3, ['gelisim','trend','son denemeler','denemelerim','netlerim','ilerleme','son uc']],
+  ['weak',   3, ['zayif','eksik konu','kotu oldugum','geometri','kimya','fizik','biyoloji']],
+  ['yksplan',2, ['bugunku plan','blok','program','takvim','planim']],
+  ['shadow', 3, ['diger strateji','strateji','golge','shadow']],
+  ['budget', 3, ['butce','limit asti','asti mi']],
+  ['balance',3, ['bakiye','ne kadar param','hesabimda','nakit','param var','borcum','kart borcu']],
+  ['pay',    3, ['odeme','fatura','ekstre','asgari','son gun','yaklasan']],
+  ['spend',  2, ['harca','harcadim','para','masraf','gider','kredi kart','restoran','market','bu ay','kategori']],
+  ['de',     2, ['almanca','deutsch','kelime','ders','a1','a2','deutschflow','tekrar']],
+  ['yks',    2, ['yks','soru','net','deneme','sinav','tyt','ayt','calisma','universite']],
+  ['bot',    2, ['bot','kripto','sinyal','pozisyon','sol','eth','btc','coin','islem','trade']],
+  ['today',  2, ['bugun','gunum','ne var','ozet','neler var','durum ne']],
+  ['thanks', 2, ['tesekkur','sagol','eyvallah','super']],
+  ['hi',     1, ['merhaba','selam','hey','gunaydin','iyi aksam']]
+];
+function match(text){
+  const t = ' ' + norm(text) + ' ';
+  let best = null, score = 0;
+  for (const [id, w, keys] of R){
+    let s = 0;
+    for (const k of keys) if (t.includes(k.length < 4 ? ' '+k : k)) s += w + k.length/20;
+    if (s > score){ score = s; best = id; }
+  }
+  if (/\bkart/.test(t) && !best) best = /almanca|kelime|tekrar/.test(t) ? 'de' : 'spend';
+  if (/\bkart/.test(t) && best==='today' && !/bugun/.test(t)) best = 'spend';
+  return best || 'fallback';
+}
+
+/* ---------- Gemini ---------- */
+const GEM = 'https://generativelanguage.googleapis.com/v1beta';
+const FALLBACK_MODELS = ['gemini-2.5-flash','gemini-2.0-flash','gemini-flash-latest'];
+const gemKey = () => LS.str('km-gem-key');
+const convo = [];   // {role:'user'|'model', text}
+function rankModels(names){
+  const ok = names.filter(n => /flash/.test(n) && !/(lite|image|tts|audio|live|embed|8b|thinking|exp|learnlm|robotics|computer|native)/.test(n));
+  const ver = n => { const m = n.match(/gemini-(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : (/latest/.test(n) ? 0.5 : 0); };
+  const pre = n => /preview/.test(n) ? 1 : 0;
+  return ok.sort((a,b) => ver(b) - ver(a) || pre(a) - pre(b) || a.length - b.length);
+}
+async function gemModels(key){
+  const tag = key.slice(-6), c = LS.get('km-gem-models', null);
+  if (c && c.tag === tag && Date.now() - c.at < 864e5 && c.list && c.list.length) return c.list;
+  let list = [];
+  try {
+    const r = await fetch(`${GEM}/models?pageSize=1000`, { headers:{ 'x-goog-api-key': key } });
+    if (r.status === 400 || r.status === 401 || r.status === 403){ const e = new Error('Gemini anahtarı geçersiz'); e.fatal = true; throw e; }
+    if (r.ok){ const j = await r.json(); list = rankModels((j.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => m.name.replace(/^models\//, ''))); }
+  } catch (e) { if (e.fatal) throw e; }
+  list = [...new Set([...list.slice(0,3), ...FALLBACK_MODELS])];
+  LS.set('km-gem-models', { tag, at: Date.now(), list });
+  return list;
+}
+function sysPrompt(){
+  const now = new Date();
+  return `Sen Yusuf'un kişisel asistanısın ("Kontrol Merkezi"). Bugün ${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()} ${DAYS[now.getDay()]}, saat ${hhmm(now)}.
+Kurallar:
+- Kısa, sıcak ve doğal Türkçe konuş. Çoğunlukla 1-3 cümle; gerekirse en fazla 5 kısa madde. İlk cümle doğrudan cevap olsun.
+- Yusuf'un uygulamaları (YKS Takip, DeutschFlow, Cüzdan, KriptoBot) hakkındaki sorularda YALNIZCA aşağıdaki VERİ'yi kullan. Sayıları, tarihleri ve adları aynen aktar; tahmin etme, uydurma, yuvarlama.
+- Bir bilgi VERİ'de yoksa ya da kaynak "bağlı değil"/"hata" ise bunu açıkça söyle; gerekiyorsa Ayarlar'dan bağlanabileceğini belirt. Veri eskiyse ("veri güncel" saati) kısaca belirt.
+- Genel sorularda, tavsiyede, ders çalışma planında ve Almanca yardımında kendi bilgini kullanabilirsin; planları verideki gerçek durumla (zayıf dersler, kalan gün, hedefler) ilişkilendir.
+- Para: 1.234,56 ₺ biçimi; ondalık ayırıcı virgül (75,75 net). Tarihleri "10 Kasım" gibi yaz.
+- Markdown başlık ve tablo kullanma; gerekirse **kalın** ve kısa "- " maddeleri kullan. Emoji kullanma; cevap sesli okunabilir.
+- KriptoBot sanal (kağıt) işlem yapar; yatırım tavsiyesi verme.
+
+VERİ (JSON):
+${JSON.stringify(KMData.context())}`;
+}
+async function gemStream(model, key, body, onText){
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 45000);
+  try {
+    const r = await fetch(`${GEM}/models/${model}:streamGenerateContent?alt=sse`, { method:'POST', signal:ctl.signal, headers:{ 'content-type':'application/json', 'x-goog-api-key':key }, body: JSON.stringify(body) });
+    if (!r.ok){
+      const t = await r.text().catch(() => '');
+      const e = new Error(r.status === 429 ? 'Gemini kotası doldu' : 'Gemini HTTP ' + r.status);
+      if (r.status === 401 || r.status === 403 || (r.status === 400 && /api key|API_KEY/i.test(t))){ e.fatal = true; e.message = 'Gemini anahtarı geçersiz'; }
+      throw e;
+    }
+    let out = '';
+    const take = line => {
+      line = line.trim(); if (!line.startsWith('data:')) return;
+      const js = line.slice(5).trim(); if (!js || js === '[DONE]') return;
+      try { const o = JSON.parse(js); for (const p of (o.candidates?.[0]?.content?.parts || [])) if (p.text && !p.thought){ out += p.text; onText(out); } } catch (e) {}
+    };
+    if (r.body && r.body.getReader){
+      const rd = r.body.getReader(), dec = new TextDecoder(); let buf = '';
+      for (;;){ const { done, value } = await rd.read(); if (done) break; buf += dec.decode(value, { stream:true }); let i; while ((i = buf.indexOf('\n')) >= 0){ take(buf.slice(0,i)); buf = buf.slice(i+1); } }
+      take(buf);
+    } else (await r.text()).split('\n').forEach(take);
+    if (!out.trim()){ const e = new Error('Gemini boş cevap verdi'); throw e; }
+    return out;
+  } catch (e) { if (e.name === 'AbortError') throw new Error('Gemini zaman aşımı'); if (e instanceof TypeError) throw new Error('Gemini’ye ulaşılamadı'); throw e; }
+  finally { clearTimeout(to); }
+}
+async function gemAsk(q, onText){
+  const key = gemKey();
+  const models = await gemModels(key);
+  const body = {
+    systemInstruction:{ parts:[{ text: sysPrompt() }] },
+    contents:[...convo.slice(-20).map(m => ({ role:m.role, parts:[{ text:m.text }] })), { role:'user', parts:[{ text:q }] }],
+    generationConfig:{ temperature:0.4, maxOutputTokens:2048 }
+  };
+  let last, got = false;
+  for (const m of models){
+    try { const t = await gemStream(m, key, body, x => { got = true; onText(x); }); LS.set('km-gem-used', m); return { text:t, model:m }; }
+    catch (e) { last = e; if (e.fatal || got) break; }
+  }
+  throw last || new Error('Gemini’ye ulaşılamadı');
+}
+function md(t){
+  const lines = esc(String(t).trim()).split('\n'); let h = '', list = null;
+  for (let l of lines){
+    l = l.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/^#+\s*/, '');
+    const m = l.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)/);
+    if (m){ const want = /^\s*\d/.test(l) ? 'ol' : 'ul'; if (list !== want){ if (list) h += `</${list}>`; h += `<${want}>`; list = want; } h += `<li>${m[1].replace(/\*/g,'')}</li>`; continue; }
+    if (list){ h += `</${list}>`; list = null; }
+    if (l.trim()) h += `<p>${l.replace(/(^|\s)\*(\S)/g,'$1$2').replace(/(\S)\*(\s|$)/g,'$1$2')}</p>`;
+  }
+  if (list) h += `</${list}>`;
+  return h;
+}
+const plain = t => String(t).replace(/\*\*/g,'').replace(/^\s*(?:[-*•])\s+/gm,'').replace(/[#*_`]/g,'');
+
+/* ---------- görüntüleme ---------- */
+const history = []; let idx = -1; let busy = false;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const chip = c => `<button class="chip" data-q="${esc(c)}">${esc(c)}</button>`;
+
+function todayLine(){
+  const y = S('yks'), d = S('de'), c = S('cz');
+  const p = [];
+  if (y){ const left = Math.max(0, y.gunlukSoruHedefi - y.bugun.soru); p.push(left ? `${left} soru` : 'soru hedefin tamam'); }
+  if (d && d.kartlar.bugunTekrar) p.push(`${d.kartlar.bugunTekrar} kart`);
+  if (czNextPay(c)) p.push('1 ödeme');
+  if (p.length) return `Bugün ${joinTR(p)} seni bekliyor.`;
+  if (KMData.keys.some(k => KMData.state[k].status === 'loading' || KMData.state[k].status === 'idle')) return 'Verilerine bakıyorum…';
+  return 'Bana günün, derslerin ya da harcamaların hakkında sorabilirsin.';
+}
+function dateLine(){
+  const n = new Date(), y = S('yks');
+  return `${n.getDate()} ${MONTHS[n.getMonth()]}, ${DAYS[n.getDay()]}` + (y && y.sinavaGun != null ? ` · YKS’ye ${y.sinavaGun} gün` : '');
+}
+function emptyHTML(){
+  return `<div class="hello">
+    <div class="date" id="helloDate">${esc(dateLine())}</div>
+    <h1>Merhaba Yusuf</h1>
+    <p id="todayLine">${esc(todayLine())}</p>
+    <div class="chips">${['Bugün ne var?','Almanca çalış','Bu ay ne harcadım?','Almancam nasıl gidiyor?','YKS durumum','Bot ne yaptı?','Yaklaşan ödemeler'].map(chip).join('')}</div>
+  </div>`;
+}
+function qHTML(q){ return `<div class="q">Sen: <b>${esc(q)}</b></div>
+  <button class="close" data-act="home" aria-label="Başlangıca dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`; }
+function footHTML(a){
+  const link = a.settings ? `<button class="open" data-act="settings">Ayarları aç ›</button>`
+    : a.app ? `<a class="open" href="${L[a.app]}" target="_blank" rel="noopener">${APP_ACC[a.app]} aç ›</a>` : '';
+  return `<div class="foot">${(a.chips||[]).map(chip).join('')}${link}</div>`;
+}
+function answerHTML(h){
+  const a = h.a;
+  let x = qHTML(h.q);
+  if (a.gen != null){
+    x += `<div class="gen" id="gen">${md(a.gen)}</div>`;
+    if (a.done !== false) x += footHTML(a) + `<div class="src">Gemini · ${esc(a.model || '')}</div>`;
+    return x;
+  }
+  x += `<div class="lead">${esc(a.lead)}</div>`;
+  if (a.note) x += `<p class="detail">${esc(a.note)}</p>`;
+  if (a.detail) x += `<p class="detail">${esc(a.detail)}</p>`;
+  if (a.note2) x += `<p class="sent">${esc(a.note2)}</p>`;
+  if (a.fig) x += `<div class="fig">${a.fig.map(([v,l])=>`<div><div class="v">${esc(v)}</div><div class="l">${esc(l)}</div></div>`).join('')}</div>`;
+  if (a.prog) x += `<div class="prog"><div class="row"><span>${esc(a.prog[0])}</span><b>${esc(a.prog[1])}</b></div><div class="track" role="progressbar" aria-valuenow="${a.prog[2]}" aria-valuemin="0" aria-valuemax="100"><i data-w="${a.prog[2]}"></i></div></div>`;
+  if (a.plan) x += `<ol class="plan">${a.plan.map(([t,s])=>`<li><div>${esc(t)}${s ? `<span>${esc(s)}</span>` : ''}</div></li>`).join('')}</ol>`;
+  return x + footHTML(a);
+}
+function pagerHTML(){
+  if (history.length < 2) return '<div class="pager"></div><div class="hint"></div>';
+  const n = Math.min(history.length, 7), start = Math.max(0, history.length - n);
+  let dots = ''; for (let i = start; i < history.length; i++) dots += `<i class="${i===idx?'on':''}"></i>`;
+  return `<div class="pager" aria-hidden="true">${dots}</div><div class="hint">${idx>0?'Öncekiler için sağa kaydır':''}</div>`;
+}
+function swap(html, isCard){
+  return new Promise(res => {
+    const old = stage.firstElementChild;
+    const put = () => {
+      stage.innerHTML = `<div class="view pre">${isCard?`<article class="card" id="card">${html}</article>${pagerHTML()}`:html}</div>`;
+      const v = stage.firstElementChild;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        v.classList.remove('pre');
+        v.querySelectorAll('.track i').forEach(i=>i.style.width=i.dataset.w+'%');
+      }));
+      if (isCard) bindSwipe();
+      res();
+    };
+    if (old && !reduce){ old.classList.add('out'); setTimeout(put, 220); } else put();
+  });
+}
+function showHome(){ idx = -1; stopSpeak(); swap(emptyHTML(), false); updateHist(); }
+function showAt(i){ idx = i; swap(answerHTML(history[i]), true); updateHist(); }
+const onHome = () => idx === -1 && !busy;
+
+let firstLoad = null;
+async function ask(q){
+  q = (q||'').trim(); if (!q) return;
+  if (P.active){ closeType(); closeSheets(); practiceInput(q); return; }
+  if (busy) return;
+  const id = match(q);
+  if (id === 'practice' || /^tekrar calis/.test(norm(q))){ closeSheets(); practiceStart(q); return; }
+  busy = true; closeType(); stopSpeak(); closeSheets();
+  mode('thinking'); status.textContent = 'Düşünüyorum…';
+  await swap(qHTML(q) + '<div class="thinking" aria-label="Yazıyor"><i></i><i></i><i></i></div>', true);
+  /* ilk açılışta veriler gelene kadar kısa bekle */
+  if (firstLoad) await Promise.race([firstLoad, new Promise(r => setTimeout(r, 8000))]);
+  let entry = null;
+  if (gemKey() && navigator.onLine !== false){
+    const local = build(id);
+    entry = { q, a:{ gen:'', done:false, chips: id === 'fallback' ? ['Bugün ne var?','Ne yapmalıyım?'] : local.chips, app: local.app, settings: local.settings } };
+    history.push(entry); idx = history.length - 1;
+    let shown = false, raf = 0, latest = '';
+    const paint = () => { raf = 0; const g = document.getElementById('gen'); if (g) g.innerHTML = md(latest); };
+    try {
+      const res = await gemAsk(q, txt => {
+        latest = txt;
+        if (!shown){ shown = true; mode('idle'); status.textContent = ''; const card = $('#card'); if (card) card.innerHTML = answerHTML(entry); }
+        if (!raf) raf = requestAnimationFrame(paint);
+      });
+      entry.a.gen = res.text; entry.a.model = res.model; entry.a.done = true;
+      convo.push({ role:'user', text:q }, { role:'model', text:res.text });
+      if (convo.length > 20) convo.splice(0, convo.length - 20);
+      if (raf) cancelAnimationFrame(raf);
+      const card = $('#card'); if (card && idx === history.length - 1) card.innerHTML = answerHTML(entry); else showAt(history.length - 1);
+    } catch (e) {
+      console.warn('[gemini]', e);
+      history.pop(); entry = null;
+      const a = build(id); a.note = `Gemini’ye ulaşılamadı (${e.message}); hazır cevabı gösteriyorum.`;
+      if (e.fatal) a.settings = true;
+      entry = { q, a };
+    }
+  } else {
+    await new Promise(r => setTimeout(r, reduce ? 200 : 450));
+    entry = { q, a: build(id) };
+  }
+  if (!history.includes(entry)){
+    history.push(entry); idx = history.length - 1;
+    mode('idle'); status.textContent = '';
+    await swap(answerHTML(entry), true);
+  }
+  mode('idle'); status.textContent = '';
+  updateHist(); busy = false;
+  if (speakOn) speak(entry.a);
+}
+
+/* ---------- geçmiş ---------- */
+function updateHist(){ $('#histBtn').hidden = history.length === 0; }
+const leadOf = a => a.gen != null ? plain(a.gen).split(/(?<=[.!?])\s/)[0] : a.lead;
+function openSheet(id){
+  closeSheets(false);
+  const sh = document.getElementById(id);
+  sh.classList.add('on'); document.body.classList.add('sheet-open');
+  sh.scrollTop = 0;
+  const f = sh.querySelector('button, input'); f && setTimeout(() => f.focus({ preventScroll:true }), 60);
+}
+function closeSheets(){
+  document.querySelectorAll('.sheet.on').forEach(s => s.classList.remove('on'));
+  document.body.classList.remove('sheet-open');
+}
+function openHist(){
+  const ul = $('#histList');
+  ul.innerHTML = history.length ? history.map((h,i)=>({h,i})).reverse().map(({h,i})=>
+    `<li><button data-hi="${i}"><div class="hq">${esc(h.q)}</div><div class="ha">${esc(leadOf(h.a))}</div></button></li>`).join('')
+    + `<li><button data-act="home"><div class="hq">Başlangıç</div><div class="ha">Merhaba ekranına dön</div></button></li>`
+    : '<li class="empty">Henüz bir şey sormadın.</li>';
+  openSheet('histSheet');
+}
+$('#histBtn').onclick = openHist;
+$('#scrim').onclick = () => { closeSheets(); markOnboarded(); };
+
+function bindSwipe(){
+  const card = $('#card'); if (!card || P.active) return;
+  let x0 = null, y0 = 0, dx = 0;
+  card.addEventListener('pointerdown', e => { if (e.target.closest('button,a')) return; x0 = e.clientX; y0 = e.clientY; dx = 0; });
+  card.addEventListener('pointermove', e => {
+    if (x0 === null) return; dx = e.clientX - x0;
+    if (Math.abs(e.clientY - y0) > Math.abs(dx)) return;
+    if (!reduce && Math.abs(dx) > 8) card.style.transform = `translateX(${dx*0.4}px)`;
+  });
+  const end = () => {
+    if (x0 === null) return; x0 = null; card.style.transform = '';
+    if (dx > 60 && idx > 0) showAt(idx - 1);
+    else if (dx < -60 && idx >= 0 && idx < history.length - 1) showAt(idx + 1);
+  };
+  card.addEventListener('pointerup', end); card.addEventListener('pointercancel', end);
+}
+
+/* ---------- tıklamalar ---------- */
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-q]'); if (c){ ask(c.dataset.q); return; }
+  const h = e.target.closest('[data-hi]'); if (h){ closeSheets(); if (P.active) practiceEnd(true).then(() => showAt(+h.dataset.hi)); else showAt(+h.dataset.hi); return; }
+  const pc = e.target.closest('[data-pc]'); if (pc){ P.count = +pc.dataset.pc; document.querySelectorAll('[data-pc]').forEach(b => b.setAttribute('aria-pressed', b === pc)); return; }
+  const pm = e.target.closest('[data-pm]'); if (pm && P.active){ stopSpeak(); stopListen(); beginMode(pm.dataset.pm); return; }
+  if (e.target.closest('[data-pm-pick]') && P.active){ renderPicker(false); return; }
+  const a = e.target.closest('[data-act]'); if (!a) return;
+  const act = a.dataset.act;
+  if (act === 'home'){ closeSheets(); if (P.active) practiceEnd(true); else showHome(); }
+  else if (act === 'type'){ stopListen(); openType(); }
+  else if (act === 'settings'){ openSettings(); }
+  else if (act === 'close'){ closeSheets(); }
+  else if (act === 'onb-done'){ markOnboarded(); closeSheets(); }
+  else if (act === 'onb-settings'){ markOnboarded(); openSettings(); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape'){ closeSheets(); closeType(); stopListen(); }
+  const inField = /INPUT|TEXTAREA/.test(document.activeElement && document.activeElement.tagName || '');
+  if (inField || P.active || document.body.classList.contains('sheet-open')) return;
+  if (e.key === 'ArrowLeft' && idx > 0) showAt(idx-1);
+  if (e.key === 'ArrowRight' && idx >= 0 && idx < history.length-1) showAt(idx+1);
+});
+
+/* ---------- yazma ---------- */
+const inp = $('#inp');
+function openType(){ stopListen(); document.body.classList.add('typing'); setTimeout(()=>inp.focus(), 50); }
+function closeType(){ document.body.classList.remove('typing'); inp.blur(); }
+$('#kbBtn').onclick = openType;
+$('#form').onsubmit = e => { e.preventDefault(); const v = inp.value; inp.value = ''; ask(v); };
+inp.addEventListener('blur', () => setTimeout(() => { if (!inp.value && document.activeElement !== inp && !document.activeElement.closest('#form')) closeType(); }, 150));
+if (window.visualViewport){
+  const kb = () => {
+    const h = Math.max(0, innerHeight - visualViewport.height - visualViewport.offsetTop);
+    document.documentElement.style.setProperty('--kb', h + 'px');
+  };
+  visualViewport.addEventListener('resize', kb); visualViewport.addEventListener('scroll', kb);
+}
+
+/* ---------- ses: dinleme ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false;
+function startListen(lang){
+  if (!SR){ openType(); return; }
+  stopSpeak();
+  rec = new SR(); rec.lang = lang || 'tr-TR'; rec.interimResults = true; rec.maxAlternatives = 1;
+  let finalText = '';
+  rec.onresult = e => {
+    let t = ''; for (const r of e.results){ t += r[0].transcript; if (r.isFinal) finalText = t; }
+    status.textContent = '“' + t + '”';
+  };
+  rec.onerror = () => { status.textContent = 'Duyamadım, tekrar dene ya da yaz.'; };
+  rec.onend = () => { listening = false; mode('idle'); $('#orb').setAttribute('aria-label','Konuşmak için dokun'); if (finalText) { status.textContent=''; ask(finalText); } else setTimeout(()=>{ if(!listening && !busy) status.textContent=''; }, 2200); };
+  try { rec.start(); listening = true; mode('listening'); status.textContent = rec.lang === 'de-DE' ? 'Dinliyorum (Almanca)…' : 'Dinliyorum…'; $('#orb').setAttribute('aria-label','Dinlemeyi durdur'); }
+  catch (e) { openType(); }
+}
+function stopListen(){ if (rec && listening) rec.stop(); }
+$('#orb').onclick = () => listening ? stopListen() : startListen(listenLang());
+if (!SR){
+  $('#micBtn').style.display = 'none';
+  $('#orb').setAttribute('aria-label', 'Yazarak sor');
+  $('#kbBtn').style.visibility = 'hidden';
+} else {
+  $('#micBtn').onclick = () => { closeType(); startListen(listenLang()); };
+}
+
+/* ---------- ses: okuma ---------- */
+const synth = window.speechSynthesis;
+let speakOn = false;
+try { speakOn = localStorage.getItem('km-speak') === '1'; } catch (e) {}
+function setSpeak(v){
+  speakOn = v; $('#speakBtn').setAttribute('aria-pressed', v);
+  $('#speakLbl').textContent = v ? 'Sesli açık' : 'Sesli';
+  $('#wave').style.opacity = v ? 1 : .35;
+  try { localStorage.setItem('km-speak', v ? '1' : '0'); } catch (e) {}
+}
+function trVoice(){ return (synth.getVoices()||[]).find(v => /^tr/i.test(v.lang)); }
+function speak(a){
+  if (!synth || !a) return; synth.cancel();
+  const txt = a.gen != null ? plain(a.gen) : (a.say || [a.lead, a.detail].filter(Boolean).join(' ') + (a.plan ? ' ' + a.plan.map(p => p[0]).join('. ') : ''));
+  speakSeq(a.gen != null ? segs(txt.replace(/([.!?])\s+/g, '$1\n')) : [{ t: txt, lang:'tr-TR' }]);
+}
+function stopSpeak(){ if (typeof spFin === 'function') spFin(); if (synth) synth.cancel(); if (KMOrb.state === 'speaking') mode('idle'); }
+if (!synth) $('#speakBtn').style.visibility = 'hidden';
+else {
+  setSpeak(speakOn);
+  $('#speakBtn').onclick = () => { setSpeak(!speakOn); if (speakOn && idx >= 0) speak(history[idx].a); else stopSpeak(); };
+}
+
+/* ---------- veri durumu ---------- */
+function srcText(k){
+  const s = KMData.state[k];
+  switch (s.status){
+    case 'ok': return `güncel · ${hhmm(s.at)}`;
+    case 'cached': return `önbellekten · ${hhmm(s.at)}`;
+    case 'loading': return 'yükleniyor…';
+    case 'off': return 'bağlı değil';
+    case 'err': return s.data ? `hata · son veri ${hhmm(s.at)}` : 'hata';
+    default: return 'bekliyor';
+  }
+}
+const dotCls = s => s.status === 'ok' ? 'ok' : s.status === 'loading' ? 'loading' : s.status === 'err' ? 'err' : s.status === 'cached' ? 'cached' : '';
+function renderStatus(){
+  const st = KMData.state, ks = KMData.keys;
+  $('#vdots').innerHTML = ks.map(k => `<i class="dot ${dotCls(st[k])}"></i>`).join('');
+  const ok = ks.filter(k => st[k].status === 'ok'), loading = ks.some(k => st[k].status === 'loading');
+  const last = Math.max(0, ...ok.map(k => st[k].at));
+  $('#vtext').textContent = loading ? 'Veriler yenileniyor…' : ok.length ? `Veri güncel ${hhmm(last)} · ${ok.length}/4 bağlı` : (ks.some(k => st[k].data) ? 'Çevrimdışı · son veriler' : 'Veri yok · Ayarlar');
+  $('#vstat').setAttribute('aria-label', 'Veri durumu: ' + ks.map(k => `${KMData.name(k)} ${srcText(k)}`).join(', '));
+  if ($('#setSheet').classList.contains('on')) renderSrcList();
+  if (onHome()){ const tl = $('#todayLine'); if (tl) tl.textContent = todayLine(); const hd = $('#helloDate'); if (hd) hd.textContent = dateLine(); }
+}
+function renderSrcList(){
+  $('#srcList').innerHTML = KMData.keys.map(k => { const s = KMData.state[k];
+    return `<li><i class="dot ${dotCls(s)}"></i><span>${esc(KMData.name(k))}</span><span class="st">${esc(srcText(k))}</span>${(s.status === 'err' || s.status === 'off') && s.err ? `<span class="why">${esc(s.err)}</span>` : ''}</li>`; }).join('');
+}
+KMData.on(renderStatus);
+$('#vstat').onclick = () => openSettings();
+$('#refreshBtn').onclick = async () => { const b = $('#refreshBtn'); b.disabled = true; b.textContent = 'Yenileniyor…'; await KMData.refresh(); b.disabled = false; b.textContent = 'Şimdi yenile'; };
+
+/* ---------- ayarlar ---------- */
+function renderGem(){
+  const k = gemKey(), used = LS.get('km-gem-used', null);
+  $('#gemBox').innerHTML = k
+    ? `<div class="linked"><span>Anahtar kayıtlı · ••••${esc(k.slice(-4))}</span><button class="btn sec2" id="gemDel">Sil</button></div><div class="small">${used ? 'Model: ' + esc(used) : 'Model ilk soruda otomatik seçilir (en yeni Flash).'}</div>`
+    : `<form class="field" id="gemForm"><label class="sr" for="gemKey">Gemini API anahtarı</label><input class="inp" id="gemKey" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false"><button class="btn">Kaydet</button></form><div class="small" id="gemMsg"></div>`;
+  const f = $('#gemForm');
+  if (f) f.onsubmit = async e => {
+    e.preventDefault(); const v = $('#gemKey').value.trim(); const msg = $('#gemMsg');
+    if (v.length < 20){ msg.className = 'small bad'; msg.textContent = 'Bu bir API anahtarına benzemiyor.'; return; }
+    msg.className = 'small'; msg.textContent = 'Kontrol ediliyor…';
+    try { LS.del('km-gem-models'); await gemModels(v); LS.setStr('km-gem-key', v); renderGem(); }
+    catch (err) { msg.className = 'small bad'; msg.textContent = err.message; }
+  };
+  const d = $('#gemDel'); if (d) d.onclick = () => { LS.del('km-gem-key'); LS.del('km-gem-models'); LS.del('km-gem-used'); convo.length = 0; renderGem(); };
+}
+function renderCz(){
+  const em = KMData.czEmail();
+  $('#czBox').innerHTML = em
+    ? `<div class="linked"><span>Bağlı · ${esc(em)}</span><button class="btn sec2" id="czOut">Çıkış yap</button></div>`
+    : `<form class="field col" id="czForm"><label class="sr" for="czEmail">E-posta</label><input class="inp" id="czEmail" type="email" placeholder="E-posta" autocomplete="username" required>
+       <label class="sr" for="czPass">Şifre</label><input class="inp" id="czPass" type="password" placeholder="Şifre" autocomplete="current-password" required>
+       <button class="btn" id="czGo">Bağlan</button></form><div class="small" id="czMsg"></div>`;
+  const f = $('#czForm');
+  if (f) f.onsubmit = async e => {
+    e.preventDefault();
+    const em = $('#czEmail').value.trim(), pw = $('#czPass'), msg = $('#czMsg'), go = $('#czGo');
+    go.disabled = true; msg.className = 'small'; msg.textContent = 'Bağlanılıyor…';
+    try { await KMData.czConnect(em, pw.value); pw.value = ''; renderCz(); KMData.refresh('cz'); }
+    catch (err) { pw.value = ''; msg.className = 'small bad'; msg.textContent = err.message; go.disabled = false; }
+  };
+  const o = $('#czOut'); if (o) o.onclick = async () => { await KMData.czDisconnect(); renderCz(); KMData.refresh('cz'); };
+}
+function renderBot(){
+  const l = KMData.botLink(), p = KMData.parseBotLink(l);
+  $('#botBox').innerHTML = p
+    ? `<div class="linked"><span>Kayıtlı · ${esc(new URL(p.base).host)}</span><button class="btn sec2" id="botDel">Sil</button></div>`
+    : `<form class="field" id="botForm"><label class="sr" for="botLink">Kayıt dosyası linki</label><input class="inp" id="botLink" type="url" placeholder="https://…/export.csv?token=…" autocomplete="off" spellcheck="false"><button class="btn">Kaydet</button></form><div class="small" id="botMsg"></div>`;
+  const f = $('#botForm');
+  if (f) f.onsubmit = e => {
+    e.preventDefault(); const v = $('#botLink').value.trim();
+    if (!KMData.parseBotLink(v)){ const m = $('#botMsg'); m.className = 'small bad'; m.textContent = 'Link “…/export.csv?token=…” biçiminde olmalı.'; return; }
+    KMData.setBotLink(v); renderBot(); KMData.refresh('bot');
+  };
+  const d = $('#botDel'); if (d) d.onclick = () => { KMData.setBotLink(''); renderBot(); KMData.refresh('bot'); };
+}
+function renderLogo(){
+  document.querySelectorAll('.logo-opt').forEach(b => b.setAttribute('aria-checked', String(+b.dataset.logo === KMOrb.logo)));
+  document.querySelectorAll('.lprev').forEach(el => { if (!el._km) KMOrb.mountPreview(el, +el.dataset.prev); });
+  $('#pillRow').hidden = KMOrb.logo !== 7;
+  document.querySelectorAll('[data-pill]').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.pill === '1') === KMOrb.pill)));
+}
+$('#logoBox').addEventListener('click', e => { const b = e.target.closest('[data-logo]'); if (!b) return; KMOrb.setLogo(+b.dataset.logo); renderLogo(); });
+$('#pillRow').addEventListener('click', e => { const b = e.target.closest('[data-pill]'); if (!b) return; KMOrb.setPill(b.dataset.pill === '1'); renderLogo(); });
+function openSettings(){ renderSrcList(); renderLogo(); renderGem(); renderCz(); renderBot(); openSheet('setSheet'); }
+$('#setBtn').onclick = openSettings;
+$('#onbAgain').onclick = () => openSheet('onbSheet');
+function markOnboarded(){ LS.setStr('km-onboarded', '1'); }
+
+/* =====================================================================
+   ALMANCA ÇALIŞMA MODU
+   (a) Kelime: vadesi gelen DeutschFlow kartları — sonuçlar siriResults'a gider
+   (b) Çeviri  (c) Dersten soru  (d) Almanca sohbet — hiçbir yere yazmaz
+   ===================================================================== */
+const P = { active:false, phase:'', mode:'kelime', count:10, lesson:null, items:[], i:0, cur:null, results:new Map(), log:[], missed:[], retried:false, tok:0, chat:[], turns:0, fixes:0, startedBy:'' };
+window.__P = P;
+const MODE_TR = { kelime:'Kelime', ceviri:'Çeviri', ders:'Dersten soru', sohbet:'Sohbet' };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const deNorm = s => String(s || '').toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+  .replace(/[àáâ]/g,'a').replace(/[éèê]/g,'e').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+const ART = /^(der|die|das|den|dem|des)\s+/;
+function lev(a, b){ const m = a.length, n = b.length; if (!m) return n; if (!n) return m; let p = Array.from({length:n+1}, (_, j) => j);
+  for (let i = 1; i <= m; i++){ const c = [i]; for (let j = 1; j <= n; j++) c[j] = Math.min(p[j] + 1, c[j-1] + 1, p[j-1] + (a[i-1] === b[j-1] ? 0 : 1)); p = c; } return p[n]; }
+/* kartın Almancası: varyantlar, artikel, çekirdek */
+function deTarget(de){
+  const variants = String(de).split(/\s*[;/]\s*|\s*,\s*(?=(?:der|die|das)\b)/).map(v => v.replace(/\(.*?\)/g, '').trim()).filter(Boolean);
+  const first = variants[0] || String(de);
+  const am = first.toLowerCase().match(/^(der|die|das)\s+/);
+  return { show: first, art: am ? am[1] : null, cores: variants.map(v => deNorm(v).replace(ART, '').replace(/^sich\s+/, '')).filter(Boolean) };
+}
+function wordMatch(ans, cores){
+  const a = deNorm(ans).replace(ART, '').replace(/^sich\s+/, '');
+  if (!a) return false;
+  return cores.some(c => { if (a === c) return true; const tol = c.length >= 9 ? 2 : c.length >= 5 ? 1 : 0; if (lev(a, c) <= tol) return true;
+    return c.split(' ').length === 1 && a.split(' ').includes(c); });
+}
+const userArt = ans => { const m = deNorm(ans).match(/^(der|die|das|den|dem)\b/); return m ? ({den:'der',dem:'der'}[m[1]] || m[1]) : null; };
+const QUIT = /^(bitir|bitti|dur|durdur|cik|yeter|kapat|vazgec|stopp?|ende|fertig|aufhoren|schluss)$/;
+const SKIP = /^(bilmiyorum|bilmiyom|atla|pas|gec|weiss nicht|ich weiss (es )?nicht|keine ahnung|ka)$/;
+const NEXT = /^(devam|sonraki|tamam|gec|weiter|ok|okay)$/;
+
+/* --- konuşma: Türkçe + Almanca parçalar --- */
+const vcache = {};
+function voiceFor(lang){ if (!synth) return null; const k = lang.slice(0,2); if (vcache[k] && synth.getVoices().includes(vcache[k])) return vcache[k]; return (vcache[k] = (synth.getVoices() || []).find(v => v.lang.toLowerCase().startsWith(k))); }
+let spFin = null;
+function speakSeq(parts){
+  return new Promise(res => {
+    if (spFin) spFin(); spFin = null;
+    const list = (parts || []).filter(p => p && p.t && p.t.trim());
+    if (!synth || !list.length){ res(); return; }
+    synth.cancel();
+    let done = false;
+    const fin = () => { if (done) return; done = true; clearTimeout(guard); if (spFin === fin) spFin = null; if (KMOrb.state === 'speaking') mode('idle'); res(); };
+    spFin = fin;
+    const guard = setTimeout(fin, list.reduce((a, p) => a + p.t.length * 95, 2500));
+    list.forEach((p, i) => {
+      const u = new SpeechSynthesisUtterance(p.t); u.lang = p.lang; const v = voiceFor(p.lang); if (v) u.voice = v; u.rate = p.lang.startsWith('de') ? 0.9 : 1;
+      u.onstart = () => { if (!done) mode('speaking'); };
+      if (i === list.length - 1) u.onend = u.onerror = fin;
+      synth.speak(u);
+    });
+  });
+}
+/* „…“ ve DE:/TR: satırlarını dillere ayır */
+function segs(text){
+  const out = [];
+  for (const line of String(text || '').replace(/\*\*/g, '').split('\n')){
+    const l = line.replace(/^\s*[-•]\s*/, '').trim(); if (!l) continue;
+    const m = l.match(/^(DE|TR)\s*:\s*(.*)$/i);
+    if (m){ out.push({ t:m[2], lang: m[1].toUpperCase() === 'DE' ? 'de-DE' : 'tr-TR' }); continue; }
+    l.split(/(„[^“”"]+[“”"])/).forEach(p => { if (!p.trim()) return; if (/^„/.test(p)) out.push({ t:p.replace(/[„“”"]/g, ''), lang:'de-DE' }); else out.push({ t:p, lang:'tr-TR' }); });
+  }
+  return out;
+}
+function exHTML(text){
+  return String(text || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+    l = esc(l).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/^[-•]\s*/, '');
+    const m = l.match(/^(DE|TR)\s*:\s*(.*)$/i);
+    if (m) return m[1].toUpperCase() === 'DE' ? `<p class="de" lang="de">${m[2]}</p>` : `<p class="tr">${m[2]}</p>`;
+    return `<p>${l.replace(/„([^“”"]+)[“”"]/g, '<span lang="de" class="dew">„$1“</span>')}</p>`;
+  }).join('');
+}
+
+/* --- Gemini yardımcıları (çalışma modu) --- */
+async function gemOnce(system, contents, onText){
+  const key = gemKey(); const models = await gemModels(key);
+  const body = { systemInstruction:{ parts:[{ text: system }] }, contents, generationConfig:{ temperature:0.5, maxOutputTokens:1024 } };
+  let last;
+  for (const m of models){ try { return await gemStream(m, key, body, onText || (() => {})); } catch (e) { last = e; if (e.fatal) break; } }
+  throw last;
+}
+const TEACHER = 'Sen sabırlı bir Almanca öğretmenisin; A1-A2 seviyesindeki Türk öğrencin Yusuf. Türkçe yaz, çok kısa ol (en fazla 3 satır). Almanca örnek cümleyi ayrı satırda "DE: ..." ve çevirisini "TR: ..." olarak yaz. Satır içinde Almanca kelimeleri „…“ içine al. Markdown başlık ve emoji kullanma.';
+
+/* --- başlatma --- */
+function lessonNo(){ const d = S('de'); const n = d && d.kurs && d.kurs.siradaki ? parseInt(d.kurs.siradaki.slice(1), 10) : 1; return Math.min(78, Math.max(1, n || 1)); }
+function parseCount(t){ const m = t.match(/\b(5|10|20|bes|on|yirmi)\b/); if (!m) return null; return { bes:5, on:10, yirmi:20 }[m[1]] || +m[1]; }
+function parseMode(t){
+  if (/ceviri|cevir|ubersetz/.test(t)) return 'ceviri';
+  if (/sohbet|muhabbet|gesprach|konusalim/.test(t)) return 'sohbet';
+  if (/ders(ten)? ?\d+|dersten|ders soru|lektion/.test(t)) return 'ders';
+  if (/kelime|kart|wort/.test(t)) return 'kelime';
+  return null;
+}
+function practiceStart(q){
+  const t = norm(q);
+  if (/^tekrar calis/.test(t) && P.lastMode){
+    P.active = true; P.chat = []; P.turns = 0; P.fixes = 0; idx = -2; closeType(); stopSpeak(); updateHist();
+    return beginMode(P.lastMode);
+  }
+  P.active = true; P.phase = 'pick'; P.count = parseCount(t) || P.count || 10; P.lesson = null;
+  P.results = new Map(); P.log = []; P.missed = []; P.retried = false; P.chat = []; P.turns = 0; P.fixes = 0; P.i = 0; P.items = [];
+  const m = parseMode(t); const ln = t.match(/ders(?:ten)? ?(\d+)/);
+  if (ln) P.lesson = Math.min(78, Math.max(1, +ln[1]));
+  idx = -2; closeType(); stopSpeak(); updateHist();
+  if (m && (parseCount(t) || m === 'sohbet' || (m === 'ders' && P.lesson))) return beginMode(m);
+  P.mode = m || 'kelime';
+  renderPicker(!!m);
+}
+function renderPicker(modeKnown){
+  const pc = n => `<button class="chip seg" data-pc="${n}" aria-pressed="${P.count === n}">${n}</button>`;
+  const modes = [['kelime','Kelime','Vadesi gelen kartların'],['ceviri','Çeviri','Kısa A1-A2 cümleler'],['ders','Dersten soru',`Ders ${lessonNo()} ve öncesi`],['sohbet','Almanca sohbet','Gemini nazikçe düzeltir']];
+  const lead = modeKnown ? `${MODE_TR[P.mode]} çalışalım. Kaç soru olsun?` : 'Almanca çalışalım. Nasıl olsun?';
+  const html = `<div class="q"><span>Almanca çalışma</span></div>${closeBtn()}
+    <div class="lead">${esc(lead)}</div>
+    <div class="segrow" role="group" aria-label="Soru sayısı"><span>Soru sayısı</span>${[5,10,20].map(pc).join('')}</div>
+    ${modeKnown ? `<div class="foot"><button class="chip strong" data-pm="${P.mode}">Başla</button><button class="chip" data-pm-pick="1">Başka mod</button></div>`
+      : `<ul class="pmodes">${modes.map(([id,t,s]) => `<li><button data-pm="${id}"><b>${t}</b><span>${esc(s)}</span></button></li>`).join('')}</ul>`}`;
+  pCard(html);
+  speakSeq([{ t: modeKnown ? `${MODE_TR[P.mode]} çalışalım. Kaç soru olsun? Beş, on ya da yirmi.` : 'Almanca çalışalım. Kelime, çeviri, dersten soru ya da sohbet?', lang:'tr-TR' }]).then(() => autoListen('tr-TR'));
+}
+function lessonPicker(){
+  P.phase = 'pickLesson';
+  const n = lessonNo(), opts = [n, n-1, n-2].filter(x => x >= 1);
+  pCard(`<div class="q"><span>Almanca · Dersten soru</span></div>${closeBtn()}
+    <div class="lead">Hangi ders?</div><p class="detail">Sıradaki dersin ${n}. Bir numara söyleyebilir ya da yazabilirsin.</p>
+    <div class="foot">${opts.map(x => `<button class="chip" data-q="ders ${x}">Ders ${x}</button>`).join('')}<button class="chip" data-q="karışık">Karışık 1–${n}</button></div>`);
+  speakSeq([{ t:'Hangi ders? Bir numara söyle.', lang:'tr-TR' }]).then(() => autoListen('tr-TR'));
+}
+function practicedToday(){ const v = LS.get('km-de-practiced', null); return v && v.d === ymd() ? new Set(v.ids) : new Set(); }
+function beginMode(m){
+  P.mode = m; P.i = 0; P.missed = []; P.retried = false; P.results = new Map(); P.log = [];
+  if (m === 'kelime'){
+    const d = S('de'); const pool = d && d._drill || [];
+    if (!pool.length) return practiceEnd(false, 'DeutschFlow kartların okunamadı. Veriler gelince tekrar dene.');
+    const seen = practicedToday();
+    const fresh = pool.filter(c => !seen.has(c.id)), old = pool.filter(c => seen.has(c.id));
+    P.items = shuffle(fresh.slice(0, Math.max(P.count, 20))).concat(old).slice(0, P.count).map(c => ({ ...c, kind:'card' }));
+  } else if (m === 'ders'){
+    if (!P.lesson){ return lessonPicker(); }
+    const ids = P.lesson === 'mix' ? Array.from({ length: lessonNo() }, (_, i) => 'v' + String(i + 1).padStart(2, '0')) : ['v' + String(P.lesson).padStart(2, '0')];
+    const v = ids.flatMap(id => ((window.KM_DERSLER || {})[id] || {}).v || []);
+    if (!v.length) return practiceEnd(false, 'Bu dersin kelimelerini bulamadım.');
+    P.items = shuffle(v).slice(0, P.count).map(([de, tr]) => ({ de, tr, kind:'lesson' }));
+  } else if (m === 'ceviri'){
+    const n = lessonNo(); const ids = Array.from({ length: n }, (_, i) => 'v' + String(i + 1).padStart(2, '0'));
+    const s = ids.flatMap(id => ((window.KM_DERSLER || {})[id] || {}).s || []).filter(([de]) => de.split(' ').length <= 8);
+    P.items = shuffle(s).slice(0, P.count).map(([de, tr], i) => ({ de, tr, dir: i % 2 ? 'tr-de' : 'de-tr', kind:'sent' }));
+  } else if (m === 'sohbet'){
+    if (!gemKey()) return practiceEnd(false, 'Almanca sohbet için Ayarlar’dan Gemini anahtarı eklemen gerekiyor.', true);
+    return chatTurn(null);
+  }
+  ask0();
+}
+function closeBtn(){ return `<button class="close" data-act="home" aria-label="Çalışmayı bitir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`; }
+function pCard(html){
+  const card = $('#card');
+  if (card && card.classList.contains('pcard')){ card.innerHTML = html; card.scrollTop = 0; requestAnimationFrame(() => card.querySelectorAll('.track i').forEach(i => i.style.width = i.dataset.w + '%')); return Promise.resolve(); }
+  return swap(html, true).then(() => { const c = $('#card'); if (c) c.classList.add('pcard'); });
+}
+const total = () => P.items.length;
+function progHTML(){ const n = total(), k = Math.min(P.i, n); return `<div class="track pt" aria-hidden="true"><i data-w="${pct(k, n)}" style="width:${pct(Math.max(0,k-1), n)}%"></i></div>`; }
+function headHTML(){ const it = P.items[P.i]; return `<div class="q"><span>Almanca · ${MODE_TR[P.mode]}${it && it.retry ? ' · tekrar' : ''}</span><b class="cnt">${Math.min(P.i + 1, total())} / ${total()}</b></div>${closeBtn()}`; }
+const listenLang = () => { if (!P.active) return 'tr-TR'; if (P.phase === 'pick' || P.phase === 'pickLesson') return 'tr-TR'; const it = P.cur; if (P.mode === 'ceviri' && it && it.dir === 'de-tr') return 'tr-TR'; return 'de-DE'; };
+function autoListen(lang){ if (!P.active || !SR || document.body.classList.contains('typing') || document.body.classList.contains('sheet-open') || listening) return; setTimeout(() => { if (P.active && !listening && !busy) startListen(lang || listenLang()); }, 150); }
+
+/* soru sor */
+function ask0(){
+  if (P.i >= total()){
+    if (!P.retried && P.missed.length && P.mode !== 'ceviri'){
+      P.retried = true; const again = P.missed.map(it => ({ ...it, retry:true })); P.missed = [];
+      P.items = P.items.concat(again);
+      pCard(`${headHTML()}<div class="lead">Kaçırdıklarını bir kez daha soruyorum.</div>`);
+      return speakSeq([{ t:'Kaçırdıklarını bir kez daha soruyorum.', lang:'tr-TR' }]).then(() => sleep(300)).then(ask0);
+    }
+    return practiceEnd(false);
+  }
+  const it = P.cur = P.items[P.i]; P.phase = 'answer'; P.tries = 0;
+  let lead, sub, say;
+  if (it.kind === 'sent'){
+    if (it.dir === 'de-tr'){ lead = `„${it.de}“`; sub = 'Türkçeye çevir.'; say = [{ t:it.de, lang:'de-DE' }, { t:'Türkçesi ne?', lang:'tr-TR' }]; }
+    else { lead = `“${it.tr}”`; sub = 'Almancaya çevir.'; say = [{ t:`${it.tr}. Almancası ne?`, lang:'tr-TR' }]; }
+  } else { lead = `“${it.tr}”`; sub = 'Almancası ne?'; say = [{ t:`${it.tr.split(/\s*[;/]\s*/)[0]}. Almancası ne?`, lang:'tr-TR' }]; }
+  pCard(`${headHTML()}<div class="lead plead">${esc(lead)}</div><p class="detail">${esc(sub)}</p>${progHTML()}
+    <div class="foot"><button class="chip" data-q="Bilmiyorum">Bilmiyorum</button><button class="chip" data-act="type">Yaz</button><button class="chip" data-q="Bitir">Bitir</button></div>
+    <div class="phint">${SR ? 'Cevabını söyle ya da yaz' : 'Cevabını yaz'}</div>`);
+  speakSeq(say).then(() => autoListen());
+}
+
+/* cevap işle */
+async function practiceInput(q){
+  const t = norm(q);
+  if (QUIT.test(t) || QUIT.test(deNorm(q))) return practiceEnd(true);
+  if (P.phase === 'pick'){
+    const c = parseCount(t); if (c) P.count = c;
+    const m = parseMode(t) || (/basla|tamam|olur|evet|hadi/.test(t) || c ? P.mode : null);
+    if (m) return beginMode(m);
+    return renderPicker(false);
+  }
+  if (P.phase === 'pickLesson'){
+    const n = t.match(/\d+/); const words = { bir:1, iki:2, uc:3, dort:4, bes:5, alti:6, yedi:7, sekiz:8, dokuz:9, on:10 };
+    const w = Object.keys(words).find(k => new RegExp('\\b' + k + '\\b').test(t));
+    if (/karisik|hepsi|tum/.test(t)) P.lesson = 'mix'; else if (n) P.lesson = Math.min(78, Math.max(1, +n[0])); else if (w) P.lesson = words[w]; else return lessonPicker();
+    return beginMode('ders');
+  }
+  if (P.phase === 'feedback'){ P.tok++; stopSpeak(); P.i++; return ask0(); }
+  if (P.mode === 'sohbet') return chatTurn(q);
+  const it = P.cur; if (!it) return;
+  if (P.phase === 'article') return articleAnswer(q);
+  if (it.kind === 'sent') return sentAnswer(q);
+  /* kelime / ders */
+  const tg = deTarget(it.de), skip = SKIP.test(t) || SKIP.test(deNorm(q));
+  const ok = !skip && wordMatch(q, tg.cores);
+  if (ok && tg.art && userArt(q) !== tg.art){
+    P.phase = 'article'; P.pendingAns = q;
+    const core = tg.show.replace(/^(der|die|das)\s+/i, '');
+    pCard(`${headHTML()}<div class="lead">Kelime doğru: <span lang="de">${esc(core)}</span>.</div><p class="detail">${userArt(q) ? `„${esc(userArt(q))}“ olmadı. ` : ''}Artikelini de söyle: der, die mı das mı?</p>${progHTML()}
+      <div class="foot"><button class="chip" data-q="der">der</button><button class="chip" data-q="die">die</button><button class="chip" data-q="das">das</button></div>`);
+    return speakSeq([{ t:'Kelime doğru. Artikelini de söyle: ', lang:'tr-TR' }, { t:'der, die, oder das?', lang:'de-DE' }]).then(() => autoListen('de-DE'));
+  }
+  return judge(it, ok, q, { artOk: true });
+}
+function articleAnswer(q){
+  const it = P.cur, tg = deTarget(it.de);
+  const a = userArt(q) || (deNorm(q).match(/\b(der|die|das)\b/) || [])[1] || null;
+  return judge(it, true, P.pendingAns, { artOk: a === tg.art, artGiven: a });
+}
+function record(it, ok, extra){
+  if (it.kind === 'card' && !it.retry && !P.results.has(it.id)) P.results.set(it.id, ok);
+  P.log.push({ de: it.de, tr: it.tr, ok, retry: !!it.retry, artMiss: extra && extra.artOk === false });
+  if (!ok && !it.retry) P.missed.push(it);
+}
+async function judge(it, ok, ans, x){
+  record(it, ok, x);
+  const tg = deTarget(it.de), show = tg.show;
+  let lead, detail, sayHead;
+  if (ok && x.artOk){ lead = 'Doğru!'; detail = `„${show}“`; sayHead = [{ t:'Doğru!', lang:'tr-TR' }, { t:show, lang:'de-DE' }]; }
+  else if (ok){ lead = 'Kelime doğru, artikel olmadı.'; detail = `Doğrusu „${show}“ (${tg.art}). Yine de doğru sayıyorum.`; sayHead = [{ t:'Kelime doğru, artikel şöyle:', lang:'tr-TR' }, { t:show, lang:'de-DE' }]; }
+  else { lead = SKIP.test(norm(ans)) ? 'Sorun değil.' : 'Olmadı.'; detail = `Doğru cevap: „${show}“.`; sayHead = [{ t:lead + ' Doğru cevap:', lang:'tr-TR' }, { t:show, lang:'de-DE' }]; }
+  const needEx = !(ok && x.artOk);
+  const local = it.ctx ? `DE: ${it.ctx}${it.ctxTr ? '\nTR: ' + it.ctxTr : ''}` : '';
+  return feedback(lead, detail, ok && x.artOk, sayHead, needEx && gemKey() ? () => gemOnce(TEACHER, [{ role:'user', parts:[{ text:
+    `Kart: „${it.de}“ = "${it.tr}". Yusuf'un cevabı: "${ans}"${ok ? ` (kelime doğru ama artikeli ${x.artGiven ? '„' + x.artGiven + '“ dedi' : 'söylemedi'})` : ' (yanlış)'}. Tek kısa açıklama ver: varsa artikel kuralı ya da ipucu, akılda tutmak için kısa bir hile, ve bir örnek cümle (DE/TR satırları).` }] }], txt => paintEx(txt)) : null, local);
+}
+async function sentAnswer(q){
+  const it = P.cur, skip = SKIP.test(norm(q));
+  const target = it.dir === 'de-tr' ? it.tr : it.de, nf = it.dir === 'de-tr' ? norm : deNorm;
+  const A = new Set(nf(q).split(' ').filter(Boolean)), Bt = nf(target).split(' ').filter(Boolean);
+  const score = Bt.length ? Bt.filter(w => A.has(w)).length / Math.max(Bt.length, A.size) : 0;
+  const localV = skip ? 'YANLIŞ' : score >= 0.6 ? 'DOĞRU' : score >= 0.35 ? 'YAKIN' : 'YANLIŞ';
+  const correct = it.dir === 'de-tr' ? `TR: ${it.tr}` : `DE: ${it.de}`;
+  if (gemKey() && !skip){
+    P.phase = 'feedback'; const tok = ++P.tok;
+    await pCard(`${headHTML()}<div class="lead">Bakıyorum…</div><div class="pex" id="pex"></div>${progHTML()}`);
+    let txt = '';
+    try {
+      txt = await gemOnce(TEACHER + ' İlk satır yalnızca DOĞRU, YAKIN ya da YANLIŞ olsun.', [{ role:'user', parts:[{ text:
+        `Cümle (${it.dir === 'de-tr' ? 'Almanca → Türkçe' : 'Türkçe → Almanca'}): "${it.dir === 'de-tr' ? it.de : it.tr}". Beklenen: "${target}". Yusuf'un çevirisi: "${q}". Anlam doğruysa küçük farkları DOĞRU say. Değerlendir ve gerekiyorsa doğru hali ${it.dir === 'de-tr' ? 'TR:' : 'DE:'} satırıyla ver.` }] }]);
+    } catch (e) { txt = ''; }
+    if (tok !== P.tok) return;
+    const vm = txt.match(/^\s*(DOĞRU|YAKIN|YANLIŞ)/i);
+    const v = vm ? vm[1].toLocaleUpperCase('tr-TR') : localV;
+    const rest = vm ? txt.slice(vm[0].length).replace(/^[\s.:—-]+/, '') : (txt ? txt : correct);
+    P.log.push({ de: it.de, tr: it.tr, ok: v !== 'YANLIŞ' });
+    return feedback(v === 'DOĞRU' ? 'Doğru!' : v === 'YAKIN' ? 'Neredeyse.' : 'Olmadı.', '', v !== 'YANLIŞ', [{ t: v === 'DOĞRU' ? 'Doğru!' : v === 'YAKIN' ? 'Neredeyse.' : 'Olmadı.', lang:'tr-TR' }], null, rest.trim() || correct);
+  }
+  P.log.push({ de: it.de, tr: it.tr, ok: localV !== 'YANLIŞ' });
+  const lead = localV === 'DOĞRU' ? 'Doğru!' : localV === 'YAKIN' ? 'Neredeyse.' : (skip ? 'Sorun değil.' : 'Olmadı.');
+  return feedback(lead, 'Doğrusu:', localV !== 'YANLIŞ', [{ t:lead, lang:'tr-TR' }], null, correct);
+}
+function paintEx(txt){ const e = $('#pex'); if (e) e.innerHTML = exHTML(txt); }
+async function feedback(lead, detail, good, sayHead, gemFn, local){
+  P.phase = 'feedback'; const tok = ++P.tok;
+  const last = P.i + 1 >= total() && (P.retried || !P.missed.length || P.mode === 'ceviri');
+  await pCard(`${headHTML()}<div class="lead ${good ? 'okc' : 'noc'}">${esc(lead)}</div>${detail ? `<p class="detail">${exHTML(detail).replace(/^<p>|<\/p>$/g, '')}</p>` : ''}
+    <div class="pex" id="pex">${local ? exHTML(local) : ''}</div>${progHTML()}
+    <div class="foot"><button class="chip strong" data-q="Devam">${last ? 'Sonucu gör' : 'Devam'}</button><button class="chip" data-q="Bitir">Bitir</button></div>`);
+  const spoken = speakSeq(sayHead);
+  let ex = local || '';
+  if (gemFn){ try { ex = await gemFn(); paintEx(ex); } catch (e) { console.warn('[gemini]', e); if (!local) paintEx(''); } }
+  await spoken; if (tok !== P.tok) return;
+  if (ex) await speakSeq(segs(ex));
+  if (tok !== P.tok) return;
+  await sleep(synth ? 500 : 1400);
+  if (tok !== P.tok || !P.active || P.phase !== 'feedback') return;
+  P.tok++; P.i++; ask0();
+}
+
+/* sohbet */
+const CHAT_SYS = `Sen Yusuf'la A1-A2 seviyesinde Almanca sohbet eden sabırlı, sıcak bir arkadaşsın. Konular: günlük hayat, okul, aile, hobiler, yemek, hafta sonu.
+Her cevabın biçimi:
+- Yusuf'un son mesajında Almanca hata varsa önce TEK satır: "TR: Düzeltme: „doğru cümle“ — çok kısa Türkçe açıklama". Hata yoksa bu satırı yazma. Türkçe yazdıysa Almancasını „…“ içinde ver.
+- Sonra "DE: " ile başlayan 1-2 kısa, basit Almanca cümle ve mutlaka bir soru.
+Zor bir kelime kullanırsan hemen ardından parantezde Türkçesini ver. Emoji ve markdown başlık kullanma.`;
+async function chatTurn(q){
+  P.mode = 'sohbet'; P.phase = 'chat';
+  if (q){ P.chat.push({ role:'user', parts:[{ text:q }] }); P.turns++; }
+  const tok = ++P.tok;
+  const head = `<div class="q"><span>Almanca · Sohbet</span><b class="cnt">${P.turns} / ${P.count}</b></div>${closeBtn()}`;
+  if (q && P.turns > P.count) return practiceEnd(false);
+  await pCard(`${head}${q ? `<p class="detail you">Sen: <span lang="de">${esc(q)}</span></p>` : ''}<div class="pex chat" id="pex"></div>
+    <div class="foot"><button class="chip" data-act="type">Yaz</button><button class="chip" data-q="Bitir">Bitir</button></div><div class="phint">${SR ? 'Almanca konuş ya da yaz' : 'Almanca yaz'}</div>`);
+  mode('thinking');
+  let txt = '';
+  try {
+    txt = await gemOnce(CHAT_SYS, P.chat.length ? P.chat : [{ role:'user', parts:[{ text:'Sohbeti sen başlat: kısa bir selam ve basit bir soru.' }] }], t => { if (tok === P.tok){ mode('idle'); paintEx(t); } });
+  } catch (e) { mode('idle'); paintEx('TR: Gemini’ye ulaşılamadı (' + e.message + ').'); return; }
+  if (tok !== P.tok) return;
+  mode('idle');
+  if (/Düzeltme/i.test(txt)) P.fixes++;
+  P.chat.push({ role:'model', parts:[{ text:txt }] });
+  paintEx(txt);
+  await speakSeq(segs(txt));
+  if (tok === P.tok) autoListen('de-DE');
+}
+
+/* bitiş + sonuç gönderme (yalnızca kelime modu) */
+async function practiceEnd(early, msg, needKey){
+  const was = P.active; P.active = false; P.tok++; stopSpeak(); stopListen(); P.phase = '';
+  const results = [...P.results].map(([id, ok]) => ({ id, ok }));
+  let sendNote = '';
+  if (P.mode === 'kelime' && results.length){
+    try { const v = practicedToday(); LS.set('km-de-practiced', { d: ymd(), ids: [...new Set([...v, ...results.map(r => r.id)])] }); } catch (e) {}
+    try { await KMData.deSendResults(results); sendNote = 'Sonuçlar Almanca uygulamana gönderildi; uygulamayı açınca kartlarına işlenecek.'; }
+    catch (e) { sendNote = 'Sonuçlar şu an gönderilemedi; internet gelince otomatik tekrar denenecek.'; }
+  }
+  let a;
+  if (msg){ a = { lead: msg, chips: ['Almanca çalış','Almancam nasıl gidiyor?'], settings: !!needKey }; }
+  else if (P.mode === 'sohbet'){
+    a = { lead: P.turns ? `${P.turns} tur Almanca konuştuk.` : 'Sohbeti bitirdik.', detail: P.turns ? (P.fixes ? `${P.fixes} küçük düzeltme yaptım. Güzel gidiyorsun.` : 'Hiç düzeltme gerekmedi, harika.') : '', chips:['Tekrar çalış','Almanca çalış'], app:'de' };
+  } else {
+    const first = P.log.filter(l => !l.retry), good = first.filter(l => l.ok).length;
+    const wrong = first.filter(l => !l.ok), late = P.log.filter(l => l.retry && l.ok).length, arts = first.filter(l => l.artMiss);
+    const unit = P.mode === 'ceviri' ? 'cümleden' : 'kelimeden';
+    if (!first.length) a = { lead: 'Çalışmayı bitirdik.', detail: 'Hiç soru cevaplanmadı; bir şey gönderilmedi.', chips:['Almanca çalış'], app:'de' };
+    else a = {
+      lead: `${first.length} ${unit} ${good} doğru.`,
+      detail: [wrong.length ? `En zorlananlar: ${wrong.slice(0,4).map(l => P.mode === 'ceviri' ? l.de : deTarget(l.de).show).join(', ')}.` : 'Hepsini bildin!',
+        late ? `${late} tanesini ikinci denemede bildin.` : '', arts.length ? `Artikel karışanlar: ${arts.slice(0,3).map(l => deTarget(l.de).show).join(', ')}.` : '', early ? 'Erken bitirdin; cevapladıkların sayıldı.' : ''].filter(Boolean).join(' '),
+      fig: [[`${good}/${first.length}`, 'doğru'], [String(wrong.length), 'zorlanılan'], [`%${pct(good, first.length)}`, 'başarı']],
+      chips:['Tekrar çalış','Almancam nasıl gidiyor?'], app:'de'
+    };
+  }
+  if (sendNote) a.note2 = sendNote;
+  a.say = [a.lead, a.detail, sendNote].filter(Boolean).join(' ');
+  P.lastMode = P.mode;
+  const entry = { q: 'Almanca çalış · ' + MODE_TR[P.mode], a };
+  history.push(entry); idx = history.length - 1;
+  await swap(answerHTML(entry), true);
+  updateHist();
+  if (was) speakSeq([{ t: a.say, lang:'tr-TR' }]);
+  return entry;
+}
+
+/* ---------- başlat ---------- */
+window.__km = { ask, showHome, match, build, data: KMData, rankModels, md, P, deTarget, wordMatch, segs };
+renderStatus();
+showHome();
+firstLoad = KMData.refresh().finally(() => { firstLoad = null; KMData.deFlushPending(); });
+if (!LS.str('km-onboarded')) setTimeout(() => openSheet('onbSheet'), 500);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  const ok = KMData.keys.filter(k => KMData.state[k].status === 'ok').map(k => KMData.state[k].at);
+  if (!ok.length || Date.now() - Math.min(...ok) > 5 * 60e3) KMData.refresh();
+});
+addEventListener('online', () => { KMData.refresh(); KMData.deFlushPending(); });
+if ('serviceWorker' in navigator && window.isSecureContext && !navigator.webdriver) navigator.serviceWorker.register('sw.js').catch(e => console.warn('sw', e));
+})();
+</script>
+</body>
+</html>
